@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is a partner (admin)
+    function isPartner() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'partner';
+    }
+    
+    // Helper function to check if user is a student
+    function isStudent() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Subjects collection
+    match /subjects/{subjectId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isPartner(); // Only partners can manage subjects
+    }
+    
+    // Chapters collection
+    match /chapters/{chapterId} {
+      allow read: if request.auth != null;
+      allow create, delete: if isPartner(); // Only partners can create/delete chapters
+      allow update: if request.auth != null; // Both can update (students update progress, partners manage)
+    }
+    
+    // Tasks collection
+    match /tasks/{taskId} {
+      // Partners see ALL tasks, students see tasks assigned to them
+      allow read: if request.auth != null && 
+                  (isPartner() || resource.data.assignedTo == request.auth.uid);
+      // Partners can create and assign tasks, students can create tasks for themselves
+      allow create: if isPartner() || 
+                    (request.auth != null && request.resource.data.assignedTo == request.auth.uid);
+      // Partners and assigned students can update tasks
+      allow update: if request.auth != null && 
+                    (isPartner() || resource.data.assignedTo == request.auth.uid);
+      // Partners can delete any task, students can delete their own tasks
+      allow delete: if isPartner() ||
+                    (resource.data.assignedTo == request.auth.uid && resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Notes collection - read by all, write by authenticated users
+    match /notes/{noteId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.fromUser == request.auth.uid;
+    }
+    
+    // Config collection - read by all, only partners can write
+    match /config/{configId} {
+      allow read: if request.auth != null;
+      allow write: if isPartner();
+    }
+  }
+}
+
