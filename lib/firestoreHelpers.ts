@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Subject, Chapter, Task, Note, ExamConfig, ProgressStats } from './types';
@@ -171,8 +172,11 @@ export async function completeTask(taskId: string): Promise<void> {
   
   const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
   
-  // Mark task as completed
-  await updateDoc(doc(db, 'tasks', taskId), { completed: true });
+  // Mark task as completed with timestamp
+  await updateDoc(doc(db, 'tasks', taskId), { 
+    completed: true,
+    completedAt: new Date()
+  });
   
   // If task has chapterId (By Chapter), update that specific chapter
   if (task.chapterId) {
@@ -238,8 +242,11 @@ export async function uncompleteTask(taskId: string): Promise<void> {
   
   const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
   
-  // Mark task as incomplete
-  await updateDoc(doc(db, 'tasks', taskId), { completed: false });
+  // Mark task as incomplete and remove completedAt timestamp
+  await updateDoc(doc(db, 'tasks', taskId), { 
+    completed: false,
+    completedAt: deleteField()
+  });
   
   // Rollback progress
   // If task has chapterId (By Chapter), reset that chapter to 0

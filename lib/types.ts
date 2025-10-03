@@ -39,6 +39,7 @@ export interface Task {
   createdBy: string; // Partner who created the task
   createdAt: Date;
   deadline?: Date; // Due date for the task
+  completedAt?: Date; // When the task was actually completed
 }
 
 export interface Note {
