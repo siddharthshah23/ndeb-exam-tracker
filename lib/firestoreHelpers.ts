@@ -121,6 +121,7 @@ export async function getTasks(userId: string): Promise<Task[]> {
     ...doc.data(),
     createdAt: doc.data().createdAt?.toDate() || new Date(),
     deadline: doc.data().deadline?.toDate() || null,
+    completedAt: doc.data().completedAt?.toDate() || null,
   })) as Task[];
 }
 
@@ -137,6 +138,7 @@ export async function getTasksCreatedBy(userId: string): Promise<Task[]> {
     ...doc.data(),
     createdAt: doc.data().createdAt?.toDate() || new Date(),
     deadline: doc.data().deadline?.toDate() || null,
+    completedAt: doc.data().completedAt?.toDate() || null,
   })) as Task[];
 }
 
@@ -149,6 +151,7 @@ export async function getAllTasks(): Promise<Task[]> {
     ...doc.data(),
     createdAt: doc.data().createdAt?.toDate() || new Date(),
     deadline: doc.data().deadline?.toDate() || null,
+    completedAt: doc.data().completedAt?.toDate() || null,
   })) as Task[];
 }
 
@@ -519,27 +522,50 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
   // Note: tasks are not used in progress calculation, removed to avoid index issues
 
   const subjectProgress: ProgressStats['subjectProgress'] = {};
-  let totalChaptersCompleted = 0;
+  let totalProgressSum = 0; // Sum of all chapter progress percentages
   let totalChapters = 0;
   let totalRevisions = 0;
 
   for (const subject of subjects) {
     const subjectChapters = chapters.filter(ch => ch.subjectId === subject.id);
-    const chaptersCompleted = subjectChapters.filter(
-      ch => ch.completedPages >= ch.totalPages
-    ).length;
     const totalPages = subjectChapters.reduce((sum, ch) => sum + ch.totalPages, 0);
     const pagesCompleted = subjectChapters.reduce((sum, ch) => sum + ch.completedPages, 0);
+    
+    // Progressive Mastery: Calculate chapter progress including revisions
+    // Each chapter: 25% for reading + 25% per revision (3 revisions = 75%)
+    let subjectProgressSum = 0;
+    let chaptersFullyMastered = 0; // 100% complete (all pages + 3 revisions)
+    
+    for (const chapter of subjectChapters) {
+      // Reading progress: 0-25%
+      const readingProgress = chapter.totalPages > 0 
+        ? (chapter.completedPages / chapter.totalPages) * 25 
+        : 0;
+      
+      // Revision progress: 0-75% (25% per revision × 3 revisions)
+      const revisionProgress = chapter.revisionsCompleted * 25;
+      
+      // Total chapter progress: 0-100%
+      const chapterProgress = readingProgress + revisionProgress;
+      subjectProgressSum += chapterProgress;
+      
+      if (chapterProgress >= 100) {
+        chaptersFullyMastered++;
+      }
+    }
 
-    totalChaptersCompleted += chaptersCompleted;
     totalChapters += subjectChapters.length;
     totalRevisions += subjectChapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
+    totalProgressSum += subjectProgressSum;
 
-    const percentage = totalPages > 0 ? (pagesCompleted / totalPages) * 100 : 0;
+    // Subject percentage is average of all its chapters' progress
+    const percentage = subjectChapters.length > 0 
+      ? subjectProgressSum / subjectChapters.length 
+      : 0;
 
     subjectProgress[subject.id] = {
       name: subject.name,
-      chaptersCompleted,
+      chaptersCompleted: chaptersFullyMastered,
       totalChapters: subjectChapters.length,
       pagesCompleted,
       totalPages,
@@ -547,8 +573,9 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
     };
   }
 
+  // Overall progress is average of all chapters' progress
   const overallProgress = totalChapters > 0 
-    ? Math.round((totalChaptersCompleted / totalChapters) * 100) 
+    ? Math.round(totalProgressSum / totalChapters) 
     : 0;
 
   return {

@@ -47,8 +47,29 @@ export default function SubjectDetailPage() {
     fetchData();
   }, [user, subjectId]);
 
-  const handleRevisionClick = async (chapterId: string, currentRevisions: number) => {
-    if (currentRevisions < 3 && user) {
+  const handleRevisionClick = async (chapterId: string, currentRevisions: number, revisionNumber: number) => {
+    if (!user) return;
+    
+    // If clicking on a completed revision, undo it (only if it's the last one)
+    if (currentRevisions >= revisionNumber) {
+      // Can only undo the most recent revision
+      if (revisionNumber === currentRevisions) {
+        const newRevisions = currentRevisions - 1;
+        await updateChapter(chapterId, { revisionsCompleted: newRevisions });
+        setChapters((prev) =>
+          prev.map((ch) =>
+            ch.id === chapterId ? { ...ch, revisionsCompleted: newRevisions } : ch
+          )
+        );
+        
+        // Update daily streak for students
+        if (user.role === 'student') {
+          await updateDailyStreak(user.uid);
+        }
+      }
+    }
+    // If clicking on the next available revision, complete it
+    else if (currentRevisions === revisionNumber - 1) {
       const newRevisions = currentRevisions + 1;
       await updateChapter(chapterId, { revisionsCompleted: newRevisions });
       setChapters((prev) =>
@@ -152,11 +173,15 @@ export default function SubjectDetailPage() {
 
         <div className="space-y-4">
           {sortedChapters.map((chapter) => {
-            const progressPercentage =
-              chapter.totalPages > 0
-                ? Math.round((chapter.completedPages / chapter.totalPages) * 100)
-                : 0;
-            const isCompleted = chapter.completedPages >= chapter.totalPages;
+            // Progressive Mastery: 25% reading + 75% revisions (25% each)
+            const readingProgress = chapter.totalPages > 0
+              ? (chapter.completedPages / chapter.totalPages) * 25
+              : 0;
+            const revisionProgress = chapter.revisionsCompleted * 25;
+            const progressPercentage = Math.round(readingProgress + revisionProgress);
+            
+            // Chapter is fully mastered when reading + all 3 revisions are done
+            const isCompleted = progressPercentage >= 100;
 
             return (
               <div key={chapter.id} className="card">
@@ -201,24 +226,42 @@ export default function SubjectDetailPage() {
                 <div className="mb-4">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Revisions: {chapter.revisionsCompleted}/3
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                      (Click to add/undo)
+                    </span>
                   </p>
                   <div className="flex space-x-2">
-                    {[1, 2, 3].map((rev) => (
-                      <button
-                        key={rev}
-                        onClick={() => handleRevisionClick(chapter.id, chapter.revisionsCompleted)}
-                        disabled={chapter.revisionsCompleted < rev - 1}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                          chapter.revisionsCompleted >= rev
-                            ? 'bg-green-500 dark:bg-green-600 text-white'
-                            : chapter.revisionsCompleted === rev - 1
-                            ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        Rev {rev}
-                      </button>
-                    ))}
+                    {[1, 2, 3].map((rev) => {
+                      const isCompleted = chapter.revisionsCompleted >= rev;
+                      const isNext = chapter.revisionsCompleted === rev - 1;
+                      const isLocked = chapter.revisionsCompleted < rev - 1;
+                      const canUndo = chapter.revisionsCompleted === rev;
+                      
+                      return (
+                        <button
+                          key={rev}
+                          onClick={() => handleRevisionClick(chapter.id, chapter.revisionsCompleted, rev)}
+                          disabled={isLocked}
+                          title={
+                            canUndo ? `Click to undo Rev ${rev}` :
+                            isNext ? `Click to complete Rev ${rev}` :
+                            isCompleted ? 'Complete previous revision first to undo' :
+                            'Complete previous revision first'
+                          }
+                          className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                            isCompleted
+                              ? canUndo
+                                ? 'bg-green-500 dark:bg-green-600 text-white hover:bg-yellow-500 dark:hover:bg-yellow-600 hover:scale-105 cursor-pointer'
+                                : 'bg-green-500 dark:bg-green-600 text-white opacity-75 cursor-default'
+                              : isNext
+                              ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 hover:scale-105'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          Rev {rev}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
