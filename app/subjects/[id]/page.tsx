@@ -91,7 +91,8 @@ export default function SubjectDetailPage() {
   };
 
   const handlePageUpdate = async (chapterId: string, completedPages: number, totalPages: number) => {
-    const newCompleted = Math.min(completedPages, totalPages);
+    // Ensure completedPages is between 0 and totalPages
+    const newCompleted = Math.max(0, Math.min(completedPages, totalPages));
     await updateChapter(chapterId, { completedPages: newCompleted });
     setChapters((prev) =>
       prev.map((ch) => (ch.id === chapterId ? { ...ch, completedPages: newCompleted } : ch))
@@ -224,57 +225,72 @@ export default function SubjectDetailPage() {
 
                 {/* Revision Tracking */}
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Revisions: {chapter.revisionsCompleted}/3
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      (Click to add/undo)
-                    </span>
-                  </p>
-                  <div className="flex space-x-2">
-                    {[1, 2, 3].map((rev) => {
-                      const isCompleted = chapter.revisionsCompleted >= rev;
-                      const isNext = chapter.revisionsCompleted === rev - 1;
-                      const isLocked = chapter.revisionsCompleted < rev - 1;
-                      const canUndo = chapter.revisionsCompleted === rev;
-                      
-                      return (
-                        <button
-                          key={rev}
-                          onClick={() => handleRevisionClick(chapter.id, chapter.revisionsCompleted, rev)}
-                          disabled={isLocked}
-                          title={
-                            canUndo ? `Click to undo Rev ${rev}` :
-                            isNext ? `Click to complete Rev ${rev}` :
-                            isCompleted ? 'Complete previous revision first to undo' :
-                            'Complete previous revision first'
-                          }
-                          className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                            isCompleted
-                              ? canUndo
-                                ? 'bg-green-500 dark:bg-green-600 text-white hover:bg-yellow-500 dark:hover:bg-yellow-600 hover:scale-105 cursor-pointer'
-                                : 'bg-green-500 dark:bg-green-600 text-white opacity-75 cursor-default'
-                              : isNext
-                              ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 hover:scale-105'
-                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                          }`}
-                        >
-                          Rev {rev}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {chapter.completedPages >= chapter.totalPages ? (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Revisions: {chapter.revisionsCompleted}/3
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          (Click to add/undo)
+                        </span>
+                      </p>
+                      <div className="flex space-x-2">
+                        {[1, 2, 3].map((rev) => {
+                          const isCompleted = chapter.revisionsCompleted >= rev;
+                          const isNext = chapter.revisionsCompleted === rev - 1;
+                          const isLocked = chapter.revisionsCompleted < rev - 1;
+                          const canUndo = chapter.revisionsCompleted === rev;
+                          
+                          return (
+                            <button
+                              key={rev}
+                              onClick={() => handleRevisionClick(chapter.id, chapter.revisionsCompleted, rev)}
+                              disabled={isLocked}
+                              title={
+                                canUndo ? `Click to undo Rev ${rev}` :
+                                isNext ? `Click to complete Rev ${rev}` :
+                                isCompleted ? 'Complete previous revision first to undo' :
+                                'Complete previous revision first'
+                              }
+                              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                isCompleted
+                                  ? canUndo
+                                    ? 'bg-green-500 dark:bg-green-600 text-white hover:bg-yellow-500 dark:hover:bg-yellow-600 hover:scale-105 cursor-pointer'
+                                    : 'bg-green-500 dark:bg-green-600 text-white opacity-75 cursor-default'
+                                  : isNext
+                                  ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 hover:scale-105'
+                                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                              }`}
+                            >
+                              Rev {rev}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <span className="text-sm">🦋</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Revision Locked</span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                        Complete reading all pages first to unlock revision tasks! 📚✨
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Page Counter */}
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={() =>
-                      handlePageUpdate(chapter.id, chapter.completedPages - 10, chapter.totalPages)
-                    }
+                    onClick={() => {
+                      const decrement = Math.min(10, chapter.completedPages);
+                      handlePageUpdate(chapter.id, chapter.completedPages - decrement, chapter.totalPages);
+                    }}
                     disabled={chapter.completedPages === 0}
                     className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                   >
-                    -10
+                    -{Math.min(10, chapter.completedPages) || 10}
                   </button>
                   <button
                     onClick={() =>
@@ -298,13 +314,15 @@ export default function SubjectDetailPage() {
                     +1
                   </button>
                   <button
-                    onClick={() =>
-                      handlePageUpdate(chapter.id, chapter.completedPages + 10, chapter.totalPages)
-                    }
+                    onClick={() => {
+                      const remainingPages = chapter.totalPages - chapter.completedPages;
+                      const increment = Math.min(10, remainingPages);
+                      handlePageUpdate(chapter.id, chapter.completedPages + increment, chapter.totalPages);
+                    }}
                     disabled={chapter.completedPages >= chapter.totalPages}
                     className="px-3 py-1 bg-primary-600 dark:bg-primary-500 text-white rounded-md hover:bg-primary-700 dark:hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                   >
-                    +10
+                    +{Math.min(10, chapter.totalPages - chapter.completedPages)}
                   </button>
                 </div>
               </div>

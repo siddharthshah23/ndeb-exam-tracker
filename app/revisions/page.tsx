@@ -16,7 +16,14 @@ export default function RevisionsPage() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
-  const [selectedRevisionFilter, setSelectedRevisionFilter] = useState<number | null>(null);
+  const [subjectFilters, setSubjectFilters] = useState<{[subjectId: string]: number | undefined}>({});
+
+  const handleSubjectRevisionFilterClick = (subjectId: string, revisionLevel: number | undefined) => {
+    setSubjectFilters(prev => ({
+      ...prev,
+      [subjectId]: revisionLevel
+    }));
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -56,14 +63,6 @@ export default function RevisionsPage() {
     });
   };
 
-  const handleRevisionFilterClick = (revisionLevel: number | null) => {
-    setSelectedRevisionFilter(revisionLevel);
-    // Auto-expand all subjects when filtering so users can see the filtered results
-    if (revisionLevel !== null) {
-      const allSubjectIds = subjects.map(s => s.id);
-      setExpandedSubjects(new Set(allSubjectIds));
-    }
-  };
 
   const handleRevisionClick = async (chapterId: string, currentRevisions: number, revisionNumber: number) => {
     if (!user) return;
@@ -111,26 +110,29 @@ export default function RevisionsPage() {
     );
   }
 
-  // Calculate revision statistics
-  const totalChapters = chapters.length;
-  const totalPossibleRevisions = totalChapters * 3;
-  const totalRevisions = chapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
+  // Calculate revision statistics based on ALL chapters
+  const assignableChapters = chapters.filter(ch => ch.completedPages >= ch.totalPages);
+  const totalPossibleRevisions = chapters.length * 3; // All chapters * 3 revisions each
+  const totalRevisions = chapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0); // All chapters
   const revisionProgress = totalPossibleRevisions > 0
     ? Math.round((totalRevisions / totalPossibleRevisions) * 100)
     : 0;
 
   const chaptersByRevision = {
-    rev0: chapters.filter(ch => ch.revisionsCompleted === 0),
-    rev1: chapters.filter(ch => ch.revisionsCompleted === 1),
-    rev2: chapters.filter(ch => ch.revisionsCompleted === 2),
-    rev3: chapters.filter(ch => ch.revisionsCompleted === 3),
+    rev0: assignableChapters.filter(ch => ch.revisionsCompleted === 0),
+    rev1: assignableChapters.filter(ch => ch.revisionsCompleted === 1),
+    rev2: assignableChapters.filter(ch => ch.revisionsCompleted === 2),
+    rev3: assignableChapters.filter(ch => ch.revisionsCompleted === 3),
   };
 
-  // Group chapters by subject for the new layout
+  // Group chapters by subject, but only show chapters that are fully read (can have revision tasks)
   const subjectsWithStats = subjects.map(subject => {
-    const subjectChapters = chapters.filter(ch => ch.subjectId === subject.id);
-    const subjectRevisions = subjectChapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
-    const subjectPossibleRevisions = subjectChapters.length * 3;
+    const allSubjectChapters = chapters.filter(ch => ch.subjectId === subject.id);
+    // Only include chapters that are fully read (can have revision tasks assigned)
+    const subjectChapters = allSubjectChapters.filter(ch => ch.completedPages >= ch.totalPages);
+    // Calculate progress based on ALL chapters in this subject
+    const subjectRevisions = allSubjectChapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
+    const subjectPossibleRevisions = allSubjectChapters.length * 3;
     const subjectProgress = subjectPossibleRevisions > 0 
       ? Math.round((subjectRevisions / subjectPossibleRevisions) * 100) 
       : 0;
@@ -145,12 +147,15 @@ export default function RevisionsPage() {
     return {
       ...subject,
       chapters: subjectChapters,
+      allChapters: allSubjectChapters, // Keep track of all chapters for stats
       totalRevisions: subjectRevisions,
       totalPossibleRevisions: subjectPossibleRevisions,
       progress: subjectProgress,
       chaptersByRevision: chaptersByRevisionForSubject,
+      hasAssignableChapters: subjectChapters.length > 0,
     };
-  }).sort((a, b) => b.progress - a.progress); // Sort by progress descending
+  }).filter(subject => subject.hasAssignableChapters) // Only show subjects with assignable chapters
+    .sort((a, b) => b.progress - a.progress); // Sort by progress descending
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -167,52 +172,62 @@ export default function RevisionsPage() {
         <div className="mb-6 sm:mb-8 animate-slide-in-up">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center flex-wrap gap-2">
             <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
-            <span>Revision Progress</span>
+            <span>Revision Tasks</span>
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-            Track your revision cycles across all chapters
+            Assign and track revision tasks for fully completed chapters
           </p>
         </div>
 
         {/* Overall Revision Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Revisions</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Chapters</p>
             <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">
-              {totalRevisions}
+              {chapters.length}
             </p>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              of {totalPossibleRevisions}
+              all chapters
             </p>
           </div>
 
           <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Progress</p>
-            <p className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">
-              {revisionProgress}%
-            </p>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              complete
-            </p>
-          </div>
-
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Fully Mastered</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Completed</p>
             <p className="text-3xl sm:text-4xl font-bold text-green-600 dark:text-green-400">
               {chaptersByRevision.rev3.length}
             </p>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              3/3 revisions
+              fully mastered
+            </p>
+          </div>
+
+          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">In Progress</p>
+            <p className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">
+              {chaptersByRevision.rev1.length + chaptersByRevision.rev2.length}
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              partially done
             </p>
           </div>
 
           <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Not Started</p>
-            <p className="text-3xl sm:text-4xl font-bold text-gray-600 dark:text-gray-400">
+            <p className="text-3xl sm:text-4xl font-bold text-orange-600 dark:text-orange-400">
               {chaptersByRevision.rev0.length}
             </p>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              0 revisions
+              ready to start
+            </p>
+          </div>
+
+          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Progress</p>
+            <p className="text-3xl sm:text-4xl font-bold text-purple-600 dark:text-purple-400">
+              {revisionProgress}%
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              overall complete
             </p>
           </div>
         </div>
@@ -221,8 +236,27 @@ export default function RevisionsPage() {
         <div className="space-y-4 sm:space-y-6">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" />
-            <span>Revision Progress by Subject</span>
+            <span>Available for Revision Tasks</span>
           </h2>
+          
+          {subjectsWithStats.length === 0 && (
+            <div className="card text-center py-12">
+              <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                No Chapters Ready for Revision
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Complete reading all pages of chapters to unlock revision tasks
+              </p>
+              <Link 
+                href="/subjects"
+                className="btn-primary inline-flex items-center"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Go to Subjects
+              </Link>
+            </div>
+          )}
           
           {subjectsWithStats.map((subject, index) => {
             const isExpanded = expandedSubjects.has(subject.id);
@@ -286,16 +320,15 @@ export default function RevisionsPage() {
                 {/* Expanded Content */}
                 {isExpanded && (
                   <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 space-y-4">
-                    {/* Revision Level Breakdown */}
+                    {/* Subject-level Revision Filter Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                      {/* Fully Mastered */}
-                      <button
-                        onClick={() => handleRevisionFilterClick(selectedRevisionFilter === 3 ? null : 3)}
-                        className={`text-center p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                          selectedRevisionFilter === 3
-                            ? 'bg-green-100 dark:bg-green-900/40 border-green-300 dark:border-green-700 ring-2 ring-green-500 dark:ring-green-400'
-                            : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/40'
+                      <div 
+                        className={`text-center p-3 rounded-lg border transition-all cursor-pointer ${
+                          subjectFilters[subject.id] === 3 
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 ring-2 ring-green-500 dark:ring-green-400' 
+                            : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30'
                         }`}
+                        onClick={() => handleSubjectRevisionFilterClick(subject.id, 3)}
                       >
                         <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
                           {subject.chaptersByRevision.rev3.length}
@@ -306,16 +339,15 @@ export default function RevisionsPage() {
                         <div className="text-xs text-green-600 dark:text-green-400">
                           3/3 revisions
                         </div>
-                      </button>
+                      </div>
 
-                      {/* 2 Revisions */}
-                      <button
-                        onClick={() => handleRevisionFilterClick(selectedRevisionFilter === 2 ? null : 2)}
-                        className={`text-center p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                          selectedRevisionFilter === 2
-                            ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700 ring-2 ring-blue-500 dark:ring-blue-400'
-                            : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                      <div 
+                        className={`text-center p-3 rounded-lg border transition-all cursor-pointer ${
+                          subjectFilters[subject.id] === 2 
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-2 ring-blue-500 dark:ring-blue-400' 
+                            : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                         }`}
+                        onClick={() => handleSubjectRevisionFilterClick(subject.id, 2)}
                       >
                         <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                           {subject.chaptersByRevision.rev2.length}
@@ -326,16 +358,15 @@ export default function RevisionsPage() {
                         <div className="text-xs text-blue-600 dark:text-blue-400">
                           2/3 revisions
                         </div>
-                      </button>
+                      </div>
 
-                      {/* 1 Revision */}
-                      <button
-                        onClick={() => handleRevisionFilterClick(selectedRevisionFilter === 1 ? null : 1)}
-                        className={`text-center p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                          selectedRevisionFilter === 1
-                            ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-300 dark:border-yellow-700 ring-2 ring-yellow-500 dark:ring-yellow-400'
-                            : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900/40'
+                      <div 
+                        className={`text-center p-3 rounded-lg border transition-all cursor-pointer ${
+                          subjectFilters[subject.id] === 1 
+                            ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 ring-2 ring-yellow-500 dark:ring-yellow-400' 
+                            : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900/30'
                         }`}
+                        onClick={() => handleSubjectRevisionFilterClick(subject.id, 1)}
                       >
                         <div className="text-2xl sm:text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-1">
                           {subject.chaptersByRevision.rev1.length}
@@ -346,39 +377,43 @@ export default function RevisionsPage() {
                         <div className="text-xs text-yellow-600 dark:text-yellow-400">
                           1/3 revisions
                         </div>
-                      </button>
+                      </div>
 
-                      {/* Not Started */}
-                      <button
-                        onClick={() => handleRevisionFilterClick(selectedRevisionFilter === 0 ? null : 0)}
-                        className={`text-center p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                          selectedRevisionFilter === 0
-                            ? 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 ring-2 ring-gray-500 dark:ring-gray-400'
-                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      <div 
+                        className={`text-center p-3 rounded-lg border transition-all cursor-pointer ${
+                          subjectFilters[subject.id] === 0 
+                            ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 ring-2 ring-orange-500 dark:ring-orange-400' 
+                            : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/30'
                         }`}
+                        onClick={() => handleSubjectRevisionFilterClick(subject.id, 0)}
                       >
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-600 dark:text-gray-400 mb-1">
+                        <div className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">
                           {subject.chaptersByRevision.rev0.length}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                        <div className="text-xs sm:text-sm text-orange-700 dark:text-orange-300 font-medium">
                           Not Started
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                        <div className="text-xs text-orange-600 dark:text-orange-400">
                           0/3 revisions
                         </div>
-                      </button>
+                      </div>
                     </div>
 
-                    {/* Chapter Details */}
-                    <div className="space-y-4">
+                    {/* Chapter List */}
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100">
-                          Chapter Details
+                          {subjectFilters[subject.id] === undefined ? 'All Chapters' :
+                           subjectFilters[subject.id] === 3 ? 'Fully Mastered Chapters' :
+                           subjectFilters[subject.id] === 2 ? 'Chapters with 2 Revisions' :
+                           subjectFilters[subject.id] === 1 ? 'Chapters with 1 Revision' :
+                           subjectFilters[subject.id] === 0 ? 'Chapters Not Started' :
+                           'All Chapters'}
                         </h4>
-                        {selectedRevisionFilter !== null && (
+                        {subjectFilters[subject.id] !== undefined && (
                           <button
-                            onClick={() => handleRevisionFilterClick(null)}
-                            className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+                            onClick={() => handleSubjectRevisionFilterClick(subject.id, undefined)}
+                            className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                           >
                             Clear Filter
                           </button>
@@ -386,37 +421,38 @@ export default function RevisionsPage() {
                       </div>
                       <div className="space-y-3">
                         {(() => {
-                          const filteredChapters = subject.chapters.filter(chapter => 
-                            selectedRevisionFilter === null || 
-                            chapter.revisionsCompleted === selectedRevisionFilter
-                          );
-                          
-                          if (filteredChapters.length === 0 && selectedRevisionFilter !== null) {
-                            const filterLabels = {
-                              3: 'Fully Mastered (3/3 revisions)',
-                              2: '2 Revisions',
-                              1: '1 Revision',
-                              0: 'Not Started (0/3 revisions)'
-                            };
-                            
+                          const filteredChapters = subject.chapters.filter((chapter) => {
+                            // Apply subject-level filter if selected
+                            if (subjectFilters[subject.id] !== undefined) {
+                              return chapter.revisionsCompleted === subjectFilters[subject.id];
+                            }
+                            return true; // Show all chapters if no filter selected
+                          });
+
+                          if (filteredChapters.length === 0 && subjectFilters[subject.id] !== undefined) {
                             return (
-                              <div className="text-center py-8">
-                                <div className="text-gray-400 dark:text-gray-600 mb-2">
-                                  <Circle className="w-12 h-12 mx-auto" />
+                              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
+                                <div className="flex items-center justify-center gap-2 mb-2">
+                                  <span className="text-2xl">🦋</span>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">No Chapters Found</span>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  No chapters with {filterLabels[selectedRevisionFilter as keyof typeof filterLabels]}
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                                  {subjectFilters[subject.id] === 3 ? 'No chapters are fully mastered yet! 📚✨' :
+                                   subjectFilters[subject.id] === 2 ? 'No chapters have 2 revisions completed! 📖💫' :
+                                   subjectFilters[subject.id] === 1 ? 'No chapters have 1 revision completed! 📝🌟' :
+                                   subjectFilters[subject.id] === 0 ? 'All chapters have started their revisions! 🎉✨' :
+                                   'No chapters match this filter! 🦋'}
                                 </p>
                                 <button
-                                  onClick={() => handleRevisionFilterClick(null)}
-                                  className="mt-2 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+                                  onClick={() => handleSubjectRevisionFilterClick(subject.id, undefined)}
+                                  className="px-3 py-1 text-xs bg-primary-600 dark:bg-primary-500 text-white rounded hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
                                 >
-                                  Show all chapters
+                                  Show All Chapters
                                 </button>
                               </div>
                             );
                           }
-                          
+
                           return filteredChapters.map((chapter) => {
                           const getRevisionColor = (revisions: number) => {
                             if (revisions === 3) return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
@@ -425,6 +461,9 @@ export default function RevisionsPage() {
                             return 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
                           };
 
+                          const nextRevision = chapter.revisionsCompleted + 1;
+                          const isFullyMastered = chapter.revisionsCompleted >= 3;
+                          
                           return (
                             <div
                               key={chapter.id}
@@ -433,7 +472,7 @@ export default function RevisionsPage() {
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center mb-1">
-                                    {chapter.revisionsCompleted === 3 ? (
+                                    {isFullyMastered ? (
                                       <Check className="w-4 h-4 text-green-600 dark:text-green-400 mr-2 flex-shrink-0" />
                                     ) : (
                                       <Circle className="w-4 h-4 text-gray-300 dark:text-gray-600 mr-2 flex-shrink-0" />
@@ -443,7 +482,7 @@ export default function RevisionsPage() {
                                     </h5>
                                   </div>
                                   <p className="text-xs text-gray-600 dark:text-gray-400 ml-6">
-                                    {chapter.completedPages}/{chapter.totalPages} pages
+                                    {chapter.completedPages}/{chapter.totalPages} pages completed
                                     {chapter.startPage !== undefined && chapter.endPage !== undefined && (
                                       <span className="text-primary-600 dark:text-primary-400 ml-1">
                                         • Pages {chapter.startPage}-{chapter.endPage}
@@ -451,16 +490,32 @@ export default function RevisionsPage() {
                                     )}
                                   </p>
                                 </div>
+                                {!isFullyMastered && (
+                                  <div className="ml-4">
+                                    <Link
+                                      href={`/tasks?type=revision&subject=${subject.id}&chapter=${chapter.id}&revision=${nextRevision}`}
+                                      className="text-xs bg-primary-600 dark:bg-primary-500 text-white px-3 py-1 rounded-md hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+                                    >
+                                      Assign Task
+                                    </Link>
+                                  </div>
+                                )}
                               </div>
 
-                              {/* Revision Tracking */}
+                              {/* Revision Status */}
                               <div>
-                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                  Revisions: {chapter.revisionsCompleted}/3
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                    (Click to add/undo)
-                                  </span>
-                                </p>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                    Revision Progress: {chapter.revisionsCompleted}/3
+                                  </p>
+                                  {!isFullyMastered && (
+                                    <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                      Next: Revision {nextRevision}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {/* Revision Buttons */}
                                 <div className="flex space-x-2">
                                   {[1, 2, 3].map((rev) => {
                                     const isCompleted = chapter.revisionsCompleted >= rev;

@@ -33,6 +33,8 @@ export interface Task {
   pages?: number;
   startPage?: number; // For page range tasks
   endPage?: number; // For page range tasks
+  taskType: 'chapter' | 'pages' | 'revision'; // Task type
+  revisionNumber?: number; // For revision tasks (1, 2, or 3)
   completed: boolean;
   userId: string; // Keep for backwards compatibility
   assignedTo: string; // Student who should complete the task
@@ -67,5 +69,17 @@ export interface ProgressStats {
   };
   overallProgress: number;
   totalRevisions: number;
+}
+
+export interface SmartSuggestion {
+  id: string;
+  name: string;
+  type: 'chapter' | 'revision' | 'page_range';
+  priority: 'high' | 'medium' | 'low';
+  description: string;
+  revisionNumber?: number;
+  startPage?: number;
+  endPage?: number;
+  isUnlocked: boolean;
 }
 

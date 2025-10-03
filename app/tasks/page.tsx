@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Confetti from '@/components/Confetti';
@@ -15,9 +15,13 @@ import {
   deleteTask,
   getSubjects,
   getChaptersBySubject,
+  getAllChapters,
   getAllStudents,
+  getSmartChapterSuggestions,
+  getSmartPageRangeSuggestions,
+  canAssignRevisionTask,
 } from '@/lib/firestoreHelpers';
-import { Task, Subject, Chapter } from '@/lib/types';
+import { Task, Subject, Chapter, SmartSuggestion } from '@/lib/types';
 import { CheckSquare, Plus, Trash2, Check, UserCheck, RotateCcw, Sparkles, Lock } from 'lucide-react';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 
@@ -36,6 +40,7 @@ const formatDeadlineEST = (date: Date): string => {
 export default function TasksPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -44,10 +49,16 @@ export default function TasksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Form state
-  const [taskType, setTaskType] = useState<'chapter' | 'pages'>('chapter');
+  const [taskType, setTaskType] = useState<'chapter' | 'pages' | 'revision'>('chapter');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedChapter, setSelectedChapter] = useState('');
   const [pageCount, setPageCount] = useState('');
+  const [revisionNumber, setRevisionNumber] = useState<number>(1);
+  
+  // Smart suggestions state
+  const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<SmartSuggestion | null>(null);
   const [taskTitle, setTaskTitle] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [deadlineDate, setDeadlineDate] = useState('');
@@ -147,10 +158,84 @@ export default function TasksPage() {
       if (selectedSubject) {
         const chaptersData = await getChaptersBySubject(selectedSubject);
         setChapters(chaptersData);
+      } else {
+        // Load all chapters to check for available revision tasks
+        const allChaptersData = await getAllChapters();
+        setChapters(allChaptersData);
       }
     }
     fetchChapters();
   }, [selectedSubject]);
+
+  // Load smart suggestions when subject is selected
+  useEffect(() => {
+    async function loadSmartSuggestions() {
+      if (selectedSubject && user) {
+        try {
+          const targetUserId = isPartner ? selectedStudent : user.uid;
+          if (targetUserId) {
+            const suggestions = await getSmartChapterSuggestions(selectedSubject, targetUserId);
+            setSmartSuggestions(suggestions);
+          }
+        } catch (error) {
+          console.error('Error loading smart suggestions:', error);
+        }
+      }
+    }
+    loadSmartSuggestions();
+  }, [selectedSubject, user, isPartner, selectedStudent]);
+
+  // State for available revision chapters
+  const [availableRevisionChapters, setAvailableRevisionChapters] = useState<Chapter[]>([]);
+
+  // Get the next available revision number for selected chapter
+  const getNextRevisionNumber = (chapterId: string) => {
+    const chapter = chapters.find(ch => ch.id === chapterId);
+    if (!chapter || chapter.completedPages < chapter.totalPages) return null;
+    return chapter.revisionsCompleted + 1;
+  };
+
+  // Update available revision chapters when chapters change
+  useEffect(() => {
+    const fullyReadChapters = chapters.filter(chapter => 
+      chapter.completedPages >= chapter.totalPages
+    );
+    setAvailableRevisionChapters(fullyReadChapters);
+  }, [chapters]);
+
+  // Reset task type if revision is selected but no chapters are available
+  useEffect(() => {
+    if (taskType === 'revision' && availableRevisionChapters.length === 0) {
+      setTaskType('chapter');
+      setSelectedChapter('');
+      setRevisionNumber(1);
+    }
+  }, [availableRevisionChapters.length, taskType]);
+
+  // Handle URL parameters for pre-filling form
+  useEffect(() => {
+    const type = searchParams.get('type');
+    const subjectId = searchParams.get('subject');
+    const chapterId = searchParams.get('chapter');
+    const revision = searchParams.get('revision');
+
+    if (type && subjectId && chapterId) {
+      // Pre-fill the form based on URL parameters
+      setTaskType(type as 'chapter' | 'pages' | 'revision');
+      setSelectedSubject(subjectId);
+      setSelectedChapter(chapterId);
+      
+      if (type === 'revision' && revision) {
+        setRevisionNumber(parseInt(revision));
+      }
+      
+      // Open the modal
+      setShowCreateModal(true);
+      
+      // Clear URL parameters
+      router.replace('/tasks');
+    }
+  }, [searchParams, router]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +247,15 @@ export default function TasksPage() {
       return;
     }
 
+    // Validate revision tasks
+    if (taskType === 'revision' && selectedChapter) {
+      const validation = await canAssignRevisionTask(selectedChapter, revisionNumber);
+      if (!validation.canAssign) {
+        alert(validation.reason);
+        return;
+      }
+    }
+
     let title = taskTitle;
     if (!title) {
       const subject = subjects.find((s) => s.id === selectedSubject);
@@ -170,6 +264,9 @@ export default function TasksPage() {
         title = `Study ${subject?.name} - ${chapter?.name}`;
       } else if (taskType === 'pages' && pageCount) {
         title = `Study ${subject?.name} - ${pageCount} pages`;
+      } else if (taskType === 'revision' && selectedChapter) {
+        const chapter = chapters.find((c) => c.id === selectedChapter);
+        title = `Revision ${revisionNumber} - ${subject?.name} - ${chapter?.name}`;
       }
     }
 
@@ -201,6 +298,7 @@ export default function TasksPage() {
     const newTask: any = {
       title,
       subjectId: selectedSubject,
+      taskType,
       completed: false,
       userId: isPartner ? selectedStudent : user.uid, // For backwards compatibility
       assignedTo: isPartner ? selectedStudent : user.uid,
@@ -211,6 +309,9 @@ export default function TasksPage() {
     // Only add optional fields if they have values
     if (taskType === 'chapter' && selectedChapter) {
       newTask.chapterId = selectedChapter;
+    } else if (taskType === 'revision' && selectedChapter) {
+      newTask.chapterId = selectedChapter;
+      newTask.revisionNumber = revisionNumber;
     }
     if (taskType === 'pages') {
       if (taskStartPage && taskEndPage) {
@@ -242,6 +343,28 @@ export default function TasksPage() {
     setDeadlineTime('');
     setTaskStartPage('');
     setTaskEndPage('');
+    setRevisionNumber(1);
+    setSmartSuggestions([]);
+    setShowSuggestions(false);
+    setSelectedSuggestion(null);
+  };
+
+  const handleSuggestionSelect = (suggestion: SmartSuggestion) => {
+    setSelectedSuggestion(suggestion);
+    setSelectedChapter(suggestion.id);
+    
+    if (suggestion.type === 'revision') {
+      setTaskType('revision');
+      setRevisionNumber(suggestion.revisionNumber || 1);
+    } else if (suggestion.type === 'page_range') {
+      setTaskType('pages');
+      setTaskStartPage(suggestion.startPage?.toString() || '');
+      setTaskEndPage(suggestion.endPage?.toString() || '');
+    } else {
+      setTaskType('chapter');
+    }
+    
+    setShowSuggestions(false);
   };
 
   const handleToggleComplete = async (task: Task) => {
@@ -369,6 +492,11 @@ export default function TasksPage() {
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
                             <span>📚 {subject?.name}</span>
                             {chapter && <span>📖 {chapter.name}</span>}
+                            {task.taskType === 'revision' && task.revisionNumber && (
+                              <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                🔄 Revision {task.revisionNumber}
+                              </span>
+                            )}
                             {task.startPage && task.endPage ? (
                               <span>📄 Pages {task.startPage}-{task.endPage} ({task.pages} pages)</span>
                             ) : task.pages ? (
@@ -463,6 +591,11 @@ export default function TasksPage() {
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-500">
                             <span>📚 {subject?.name}</span>
                             {chapter && <span>📖 {chapter.name}</span>}
+                            {task.taskType === 'revision' && task.revisionNumber && (
+                              <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                🔄 Revision {task.revisionNumber}
+                              </span>
+                            )}
                             {task.startPage && task.endPage ? (
                               <span>📄 Pages {task.startPage}-{task.endPage} ({task.pages} pages)</span>
                             ) : task.pages ? (
@@ -548,29 +681,63 @@ export default function TasksPage() {
               {/* Task Type */}
               <div>
                 <label className="label">Task Type</label>
-                <div className="flex space-x-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setTaskType('chapter')}
-                    className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
+                    className={`px-3 py-2 rounded-md border-2 transition-colors text-sm ${
                       taskType === 'chapter'
                         ? 'border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
-                    By Chapter
+                    Chapter
                   </button>
                   <button
                     type="button"
                     onClick={() => setTaskType('pages')}
-                    className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
+                    className={`px-3 py-2 rounded-md border-2 transition-colors text-sm ${
                       taskType === 'pages'
                         ? 'border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
-                    By Pages
+                    Pages
                   </button>
+                  <div className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => setTaskType('revision')}
+                      disabled={availableRevisionChapters.length === 0}
+                      className={`px-3 py-2 rounded-md border-2 transition-colors text-sm ${
+                        taskType === 'revision'
+                          ? 'border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                          : availableRevisionChapters.length === 0
+                          ? 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed bg-gray-100 dark:bg-gray-800'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                      title={availableRevisionChapters.length === 0 ? 'No chapters available for revision tasks' : 'Assign revision tasks'}
+                    >
+                      Revision
+                      {availableRevisionChapters.length === 0 && (
+                        <span className="ml-1 text-xs">🔒</span>
+                      )}
+                    </button>
+                    
+                    {/* Hover tooltip for locked state */}
+                    {availableRevisionChapters.length === 0 && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-44 sm:w-52 md:w-60 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <span className="text-sm">🦋</span>
+                          <span className="font-medium">Revision Locked</span>
+                        </div>
+                        <p className="text-xs leading-relaxed">
+                          Complete reading chapters first to unlock revisions! 📚✨
+                        </p>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -592,6 +759,52 @@ export default function TasksPage() {
                 </select>
               </div>
 
+              {/* Smart Suggestions */}
+              {selectedSubject && smartSuggestions.length > 0 && (
+                <div>
+                  <label className="label">Smart Suggestions</label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {smartSuggestions
+                      .filter(suggestion => {
+                        // For revision tasks, only show revision suggestions
+                        if (taskType === 'revision') {
+                          return suggestion.type === 'revision';
+                        }
+                        // For other task types, show all suggestions
+                        return true;
+                      })
+                      .map((suggestion) => (
+                      <button
+                        key={`${suggestion.id}-${suggestion.type}`}
+                        type="button"
+                        onClick={() => handleSuggestionSelect(suggestion)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
+                          suggestion.priority === 'high'
+                            ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30'
+                            : suggestion.priority === 'medium'
+                            ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30'
+                            : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                              {suggestion.name}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              {suggestion.description}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {suggestion.priority === 'high' ? '🔥' : suggestion.priority === 'medium' ? '⚡' : '📝'}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Chapter (if type is chapter) */}
               {taskType === 'chapter' && (
                 <div>
@@ -612,6 +825,68 @@ export default function TasksPage() {
                   </select>
                 </div>
               )}
+
+              {/* Chapter for Revision (only if chapters are fully read) */}
+              {taskType === 'revision' && (
+                <div>
+                  <label className="label">Chapter *</label>
+                  {availableRevisionChapters.length === 0 ? (
+                    <div className="input-field bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed">
+                      No chapters available for revision tasks
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedChapter}
+                      onChange={(e) => {
+                        setSelectedChapter(e.target.value);
+                        // Auto-set the next revision number when chapter changes
+                        const nextRev = getNextRevisionNumber(e.target.value);
+                        if (nextRev && nextRev <= 3) {
+                          setRevisionNumber(nextRev);
+                        }
+                      }}
+                      className="input-field"
+                      required
+                      disabled={!selectedSubject}
+                    >
+                      <option value="">Select a chapter</option>
+                      {availableRevisionChapters.map((chapter) => (
+                        <option key={chapter.id} value={chapter.id}>
+                          {chapter.name} ({chapter.revisionsCompleted}/3 revisions)
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {availableRevisionChapters.length === 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Complete reading all pages of chapters to unlock revision tasks
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Revision Number (if type is revision and chapter is selected) */}
+              {taskType === 'revision' && selectedChapter && availableRevisionChapters.length > 0 && (() => {
+                const nextRev = getNextRevisionNumber(selectedChapter);
+                if (!nextRev || nextRev > 3) return null;
+                
+                return (
+                  <div>
+                    <label className="label">Revision Number *</label>
+                    <select
+                      value={revisionNumber}
+                      onChange={(e) => setRevisionNumber(parseInt(e.target.value))}
+                      className="input-field"
+                      required
+                    >
+                      <option value={nextRev}>Revision {nextRev}</option>
+                    </select>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Next available revision for this chapter
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Page Range (if type is pages) */}
               {taskType === 'pages' && (

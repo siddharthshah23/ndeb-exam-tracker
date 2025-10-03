@@ -13,7 +13,7 @@ import {
   deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Subject, Chapter, Task, Note, ExamConfig, ProgressStats } from './types';
+import { Subject, Chapter, Task, Note, ExamConfig, ProgressStats, SmartSuggestion } from './types';
 
 // Subjects
 export async function getSubjects(): Promise<Subject[]> {
@@ -173,25 +173,33 @@ export async function updateTask(taskId: string, data: Partial<Task>): Promise<v
 export async function completeTask(taskId: string): Promise<void> {
   const taskDoc = await getDoc(doc(db, 'tasks', taskId));
   if (!taskDoc.exists()) return;
-  
+
   const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
-  
+
   // Mark task as completed with timestamp
   await updateDoc(doc(db, 'tasks', taskId), { 
     completed: true,
     completedAt: Timestamp.now()
   });
   
-  // If task has chapterId (By Chapter), update that specific chapter
+  // If task has chapterId (By Chapter or Revision), update that specific chapter
   if (task.chapterId) {
     const chapterDoc = await getDoc(doc(db, 'chapters', task.chapterId));
     if (chapterDoc.exists()) {
       const chapter = chapterDoc.data() as Chapter;
       
-      // Task was "By Chapter" - mark entire chapter as complete
-      await updateDoc(doc(db, 'chapters', task.chapterId), {
-        completedPages: chapter.totalPages,
-      });
+      if (task.taskType === 'revision' && task.revisionNumber) {
+        // Task was "Revision" - update revision count
+        const newRevisionCount = Math.max(chapter.revisionsCompleted, task.revisionNumber);
+        await updateDoc(doc(db, 'chapters', task.chapterId), {
+          revisionsCompleted: newRevisionCount,
+        });
+      } else {
+        // Task was "By Chapter" - mark entire chapter as complete
+        await updateDoc(doc(db, 'chapters', task.chapterId), {
+          completedPages: chapter.totalPages,
+        });
+      }
     }
   }
   // If task has page range (By Pages), detect which chapters are affected
@@ -245,7 +253,7 @@ export async function uncompleteTask(taskId: string): Promise<void> {
   if (!taskDoc.exists()) return;
   
   const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
-  
+
   // Mark task as incomplete and remove completedAt timestamp
   await updateDoc(doc(db, 'tasks', taskId), { 
     completed: false,
@@ -253,12 +261,29 @@ export async function uncompleteTask(taskId: string): Promise<void> {
   });
   
   // Rollback progress
-  // If task has chapterId (By Chapter), reset that chapter to 0
-  if (task.chapterId) {
-    await updateDoc(doc(db, 'chapters', task.chapterId), {
-      completedPages: 0,
-    });
-  }
+    // If task has chapterId (By Chapter or Revision), handle accordingly
+    if (task.chapterId) {
+      const chapterDoc = await getDoc(doc(db, 'chapters', task.chapterId));
+      if (chapterDoc.exists()) {
+        const chapter = chapterDoc.data() as Chapter;
+        
+        if (task.taskType === 'revision' && task.revisionNumber) {
+          // For revision tasks, rollback the revision count
+          // Only rollback if this was the highest revision completed
+          if (chapter.revisionsCompleted === task.revisionNumber) {
+            const newRevisionCount = Math.max(0, task.revisionNumber - 1);
+            await updateDoc(doc(db, 'chapters', task.chapterId), {
+              revisionsCompleted: newRevisionCount,
+            });
+          }
+        } else {
+          // For chapter tasks, reset that chapter to 0
+          await updateDoc(doc(db, 'chapters', task.chapterId), {
+            completedPages: 0,
+          });
+        }
+      }
+    }
   // If task has page range (By Pages), rollback all affected chapters
   else if (task.startPage && task.endPage && task.subjectId) {
     const chaptersSnapshot = await getDocs(
@@ -309,23 +334,29 @@ export async function deleteTask(taskId: string): Promise<void> {
   if (!taskDoc.exists()) return;
   
   const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
-  
+
   // If task was completed, roll back the progress
   if (task.completed) {
-    // If task has chapterId (By Chapter), reset that chapter to 0
+    // If task has chapterId (By Chapter or Revision), handle accordingly
     if (task.chapterId) {
       const chapterDoc = await getDoc(doc(db, 'chapters', task.chapterId));
       if (chapterDoc.exists()) {
         const chapter = chapterDoc.data() as Chapter;
-        // Subtract the progress that was added
-        const progressToRemove = task.pages || chapter.totalPages;
-        const newCompletedPages = Math.max(
-          chapter.completedPages - progressToRemove,
-          0
-        );
-        await updateDoc(doc(db, 'chapters', task.chapterId), {
-          completedPages: newCompletedPages,
-        });
+        
+        if (task.taskType === 'revision' && task.revisionNumber) {
+          // For revision tasks, rollback the revision count
+          // Only rollback if this was the highest revision completed
+          if (chapter.revisionsCompleted === task.revisionNumber) {
+            await updateDoc(doc(db, 'chapters', task.chapterId), {
+              revisionsCompleted: Math.max(0, task.revisionNumber - 1),
+            });
+          }
+        } else {
+          // For chapter tasks, reset that chapter to 0
+          await updateDoc(doc(db, 'chapters', task.chapterId), {
+            completedPages: 0,
+          });
+        }
       }
     }
     // If task has page range (By Pages), rollback all affected chapters
@@ -558,7 +589,10 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
     }
 
     totalChapters += subjectChapters.length;
-    totalRevisions += subjectChapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
+    // Only count revisions from fully read chapters
+    totalRevisions += subjectChapters
+      .filter(ch => ch.completedPages >= ch.totalPages)
+      .reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
     totalProgressSum += subjectProgressSum;
 
     // Subject percentage is average of all its chapters' progress
@@ -586,5 +620,153 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
     overallProgress,
     totalRevisions,
   };
+}
+
+// Smart Task Suggestions
+
+export async function getSmartChapterSuggestions(
+  subjectId: string, 
+  userId: string
+): Promise<SmartSuggestion[]> {
+  const chapters = await getChaptersBySubject(subjectId);
+  const userTasks = await getTasks(userId);
+  
+  const suggestions: SmartSuggestion[] = [];
+  
+  for (const chapter of chapters) {
+    const isFullyRead = chapter.completedPages >= chapter.totalPages;
+    const isFullyMastered = isFullyRead && chapter.revisionsCompleted >= 3;
+    
+    // Suggest completing partially read chapters
+    if (!isFullyRead && chapter.completedPages > 0) {
+      suggestions.push({
+        id: chapter.id,
+        name: chapter.name,
+        type: 'chapter',
+        priority: 'high',
+        description: `Complete remaining ${chapter.totalPages - chapter.completedPages} pages`,
+        isUnlocked: true
+      });
+    }
+    
+    // Suggest starting unread chapters
+    if (chapter.completedPages === 0) {
+      suggestions.push({
+        id: chapter.id,
+        name: chapter.name,
+        type: 'chapter',
+        priority: 'medium',
+        description: `Start reading (${chapter.totalPages} pages)`,
+        isUnlocked: true
+      });
+    }
+    
+    // Suggest revisions (only if chapter is fully read)
+    if (isFullyRead && !isFullyMastered) {
+      const nextRevision = chapter.revisionsCompleted + 1;
+      suggestions.push({
+        id: chapter.id,
+        name: chapter.name,
+        type: 'revision',
+        priority: 'high',
+        description: `Revision ${nextRevision} (${chapter.revisionsCompleted}/3 completed)`,
+        revisionNumber: nextRevision,
+        isUnlocked: true
+      });
+    }
+  }
+  
+  // Sort by priority and completion status
+  return suggestions.sort((a, b) => {
+    const priorityOrder: { [key: string]: number } = { high: 0, medium: 1, low: 2 };
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
+  });
+}
+
+export async function getSmartPageRangeSuggestions(
+  subjectId: string,
+  userId: string
+): Promise<SmartSuggestion[]> {
+  const chapters = await getChaptersBySubject(subjectId);
+  const suggestions: SmartSuggestion[] = [];
+  
+  for (const chapter of chapters) {
+    if (chapter.completedPages < chapter.totalPages) {
+      const remainingPages = chapter.totalPages - chapter.completedPages;
+      const nextPageStart = chapter.completedPages + 1;
+      const nextPageEnd = Math.min(nextPageStart + 10, chapter.totalPages); // Suggest 10 pages or remaining
+      
+      suggestions.push({
+        id: chapter.id,
+        name: chapter.name,
+        type: 'page_range',
+        priority: remainingPages <= 20 ? 'high' : 'medium',
+        description: `Pages ${nextPageStart}-${nextPageEnd} (${nextPageEnd - nextPageStart + 1} pages)`,
+        startPage: nextPageStart,
+        endPage: nextPageEnd,
+        isUnlocked: true
+      });
+    }
+  }
+  
+  return suggestions.sort((a, b) => {
+    const priorityOrder: { [key: string]: number } = { high: 0, medium: 1, low: 2 };
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
+  });
+}
+
+export async function canAssignRevisionTask(
+  chapterId: string,
+  revisionNumber: number
+): Promise<{ canAssign: boolean; reason?: string }> {
+  const chapter = await getChapter(chapterId);
+  
+  if (!chapter) {
+    return { canAssign: false, reason: 'Chapter not found' };
+  }
+  
+  // Check if chapter is fully read
+  if (chapter.completedPages < chapter.totalPages) {
+    return { 
+      canAssign: false, 
+      reason: `Chapter must be fully read first (${chapter.completedPages}/${chapter.totalPages} pages completed)` 
+    };
+  }
+  
+  // Check if this revision is the next one in sequence
+  if (revisionNumber !== chapter.revisionsCompleted + 1) {
+    return { 
+      canAssign: false, 
+      reason: `Must complete revision ${chapter.revisionsCompleted + 1} first` 
+    };
+  }
+  
+  // Check if all revisions are already completed
+  if (chapter.revisionsCompleted >= 3) {
+    return { 
+      canAssign: false, 
+      reason: 'All revisions for this chapter are already completed' 
+    };
+  }
+  
+  return { canAssign: true };
+}
+
+async function getChapter(chapterId: string): Promise<Chapter | null> {
+  try {
+    const docRef = doc(db, 'chapters', chapterId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return {
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as Chapter;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting chapter:', error);
+    return null;
+  }
 }
 
