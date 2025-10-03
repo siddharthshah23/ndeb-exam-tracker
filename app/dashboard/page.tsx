@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
+import FloatingBackground from '@/components/FloatingBackground';
+import ProgressMilestone from '@/components/ProgressMilestone';
 import { calculateProgress, getExamDate, getStudentUser, getUserStreak, getTasks } from '@/lib/firestoreHelpers';
 import { ProgressStats, Task } from '@/lib/types';
 import { getRandomQuote } from '@/lib/motivationalQuotes';
-import { Calendar, TrendingUp, BookOpen, Award, Flame, CheckSquare } from 'lucide-react';
+import { Calendar, TrendingUp, BookOpen, Award, Flame, CheckSquare, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { differenceInDays } from 'date-fns';
 import Link from 'next/link';
@@ -105,21 +107,27 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+      {/* Floating Background - Only for Students */}
+      {user?.role === 'student' && (
+        <FloatingBackground density="medium" progressPercentage={progress?.overallProgress || 0} />
+      )}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        <div className="mb-8 animate-slide-in-up">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
             {user?.role === 'partner' 
-              ? `${studentName}'s Progress Dashboard 📊` 
-              : `Welcome back, ${user?.name}! 👋`}
+              ? <><span>{studentName}'s Progress Dashboard</span> <span className="ml-2">📊</span></> 
+              : <><span>Welcome back, {user?.name}!</span> <Sparkles className="w-8 h-8 ml-2 text-pink-500 dark:text-pink-400 animate-pulse" /></>}
           </h1>
-          {user?.role === 'student' && <p className="text-gray-600 dark:text-gray-400">{quote}</p>}
+          {user?.role === 'student' && (
+            <p className="text-gray-600 dark:text-gray-400 text-lg animate-pulse">{quote}</p>
+          )}
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white rounded-lg shadow-lg dark:shadow-primary-500/20 p-6 hover:shadow-xl transition-all">
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white rounded-lg shadow-lg dark:shadow-primary-500/20 p-6 hover:shadow-xl hover:scale-105 transition-all transform animate-slide-in-up">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-primary-100 dark:text-primary-200 text-sm font-medium mb-1">Exam Countdown</p>
@@ -128,11 +136,11 @@ export default function DashboardPage() {
                 </p>
                 <p className="text-primary-100 dark:text-primary-200 text-sm mt-1">days left</p>
               </div>
-              <Calendar className="w-12 h-12 text-primary-200 dark:text-primary-300" />
+              <Calendar className="w-12 h-12 text-primary-200 dark:text-primary-300 animate-pulse" />
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all">
+          <div className={`card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up ${user?.role === 'student' && (progress?.overallProgress || 0) >= 75 ? 'animate-pulse-glow' : ''}`} style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">Overall Progress</p>
@@ -140,12 +148,17 @@ export default function DashboardPage() {
                   {progress?.overallProgress || 0}%
                 </p>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">completed</p>
+                {user?.role === 'student' && (progress?.overallProgress || 0) >= 25 && (
+                  <p className="text-xs text-pink-500 dark:text-pink-400 mt-2 font-medium">
+                    {(progress?.overallProgress || 0) >= 100 ? '🎉 Perfect!' : (progress?.overallProgress || 0) >= 75 ? '⭐ Amazing!' : (progress?.overallProgress || 0) >= 50 ? '🌟 Great!' : '🌱 Keep going!'}
+                  </p>
+                )}
               </div>
-              <TrendingUp className="w-12 h-12 text-green-500 dark:text-green-400" />
+              <TrendingUp className="w-12 h-12 text-green-500 dark:text-green-400 animate-bounce" />
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all">
+          <div className="card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">Total Revisions</p>
@@ -154,18 +167,21 @@ export default function DashboardPage() {
                 </p>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">cycles completed</p>
               </div>
-              <BookOpen className="w-12 h-12 text-blue-500 dark:text-blue-400" />
+              <BookOpen className="w-12 h-12 text-blue-500 dark:text-blue-400 animate-wiggle" />
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all">
+          <div className={`card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up ${user?.role === 'student' && dailyStreak >= 7 ? 'bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' : ''}`} style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">Daily Streak</p>
                 <p className="text-4xl font-bold text-gray-900 dark:text-gray-100">{dailyStreak}</p>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">days</p>
+                {user?.role === 'student' && dailyStreak >= 7 && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 font-bold">🔥 On fire!</p>
+                )}
               </div>
-              <Flame className={`w-12 h-12 ${dailyStreak > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-300 dark:text-gray-600'}`} />
+              <Flame className={`w-12 h-12 ${dailyStreak > 0 ? 'text-orange-500 dark:text-orange-400 animate-bounce' : 'text-gray-300 dark:text-gray-600'}`} />
             </div>
           </div>
         </div>
@@ -243,23 +259,42 @@ export default function DashboardPage() {
 
         {/* Subject Breakdown */}
         <div className="card hover:shadow-lg transition-all">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Subject Breakdown</h2>
-          <div className="space-y-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+            Subject Breakdown
+            {user?.role === 'student' && <Sparkles className="w-5 h-5 ml-2 text-pink-500 dark:text-pink-400" />}
+          </h2>
+          <div className="space-y-5">
             {progress &&
-              Object.entries(progress.subjectProgress).map(([id, data]) => (
-                <div key={id}>
+              Object.entries(progress.subjectProgress).map(([id, data], index) => (
+                <div key={id} className="animate-slide-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{data.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{data.name}</span>
+                      {user?.role === 'student' && data.percentage >= 25 && (
+                        <span className="text-lg">
+                          {data.percentage >= 100 ? '🏆' : data.percentage >= 75 ? '⭐' : data.percentage >= 50 ? '🌟' : '🌱'}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       {data.chaptersCompleted}/{data.totalChapters} chapters ({data.percentage}%)
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-500 h-2.5 rounded-full transition-all duration-500"
+                      className={`h-3 rounded-full transition-all duration-700 ease-out ${
+                        user?.role === 'student' && data.percentage >= 75
+                          ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-primary-500 dark:from-pink-600 dark:via-purple-600 dark:to-primary-600 animate-pulse'
+                          : 'bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-500'
+                      }`}
                       style={{ width: `${data.percentage}%` }}
                     ></div>
                   </div>
+                  {user?.role === 'student' && (
+                    <div className="mt-2">
+                      <ProgressMilestone percentage={data.percentage} subjectName={data.name} />
+                    </div>
+                  )}
                 </div>
               ))}
           </div>

@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
+import FloatingBackground from '@/components/FloatingBackground';
+import Confetti from '@/components/Confetti';
 import { getSubjects, getChaptersBySubject, updateChapter, updateDailyStreak } from '@/lib/firestoreHelpers';
 import { Subject, Chapter } from '@/lib/types';
-import { BookOpen, ArrowLeft, CheckCircle, Circle } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle, Circle, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SubjectDetailPage() {
@@ -18,6 +20,7 @@ export default function SubjectDetailPage() {
   const [subject, setSubject] = useState<Subject | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -47,16 +50,22 @@ export default function SubjectDetailPage() {
 
   const handleRevisionClick = async (chapterId: string, currentRevisions: number) => {
     if (currentRevisions < 3 && user) {
-      await updateChapter(chapterId, { revisionsCompleted: currentRevisions + 1 });
+      const newRevisions = currentRevisions + 1;
+      await updateChapter(chapterId, { revisionsCompleted: newRevisions });
       setChapters((prev) =>
         prev.map((ch) =>
-          ch.id === chapterId ? { ...ch, revisionsCompleted: currentRevisions + 1 } : ch
+          ch.id === chapterId ? { ...ch, revisionsCompleted: newRevisions } : ch
         )
       );
       
       // Update daily streak for students
       if (user.role === 'student') {
         await updateDailyStreak(user.uid);
+        
+        // Trigger confetti when completing revision 3
+        if (newRevisions === 3) {
+          setShowConfetti(true);
+        }
       }
     }
   };
@@ -93,10 +102,20 @@ export default function SubjectDetailPage() {
     );
   }
 
+  const totalCompleted = chapters.reduce((sum, ch) => sum + ch.completedPages, 0);
+  const totalPages = chapters.reduce((sum, ch) => sum + ch.totalPages, 0);
+  const overallProgress = totalPages > 0 ? Math.round((totalCompleted / totalPages) * 100) : 0;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Floating Background - Only for Students */}
+      {user?.role === 'student' && (
+        <FloatingBackground density="low" progressPercentage={overallProgress} />
+      )}
+      {/* Confetti Effect for Students */}
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <Link
           href="/subjects"
           className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 mb-6"
@@ -105,12 +124,22 @@ export default function SubjectDetailPage() {
           Back to Subjects
         </Link>
 
-        <div className="mb-8">
+        <div className="mb-8 animate-slide-in-up">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
             <BookOpen className="w-8 h-8 mr-3 text-primary-600 dark:text-primary-400" />
             {subject.name}
+            {user?.role === 'student' && overallProgress >= 50 && (
+              <Sparkles className="w-6 h-6 ml-2 text-pink-500 dark:text-pink-400 animate-pulse" />
+            )}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">{chapters.length} chapters</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            {chapters.length} chapters
+            {user?.role === 'student' && overallProgress > 0 && (
+              <span className="ml-2 text-sm font-medium text-pink-500 dark:text-pink-400">
+                • {overallProgress}% complete {overallProgress >= 100 ? '🎉' : overallProgress >= 75 ? '⭐' : overallProgress >= 50 ? '🌟' : '🌱'}
+              </span>
+            )}
+          </p>
         </div>
 
         <div className="space-y-4">

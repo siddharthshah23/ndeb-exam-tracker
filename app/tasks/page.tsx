@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
+import Confetti from '@/components/Confetti';
 import {
   getTasks,
   getAllTasks,
@@ -17,7 +18,7 @@ import {
   getAllStudents,
 } from '@/lib/firestoreHelpers';
 import { Task, Subject, Chapter } from '@/lib/types';
-import { CheckSquare, Plus, Trash2, Check, UserCheck, RotateCcw } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, Check, UserCheck, RotateCcw, Sparkles } from 'lucide-react';
 
 // Helper function to format date in EST
 const formatDeadlineEST = (date: Date): string => {
@@ -52,6 +53,7 @@ export default function TasksPage() {
   const [deadlineTime, setDeadlineTime] = useState('');
   const [taskStartPage, setTaskStartPage] = useState('');
   const [taskEndPage, setTaskEndPage] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const isPartner = user?.role === 'partner';
 
@@ -189,6 +191,11 @@ export default function TasksPage() {
     // If completing, update progress
     if (!task.completed) {
       await completeTask(task.id);
+      
+      // Trigger confetti for students
+      if (user?.role === 'student') {
+        setShowConfetti(true);
+      }
     } else {
       // If uncompleting, rollback progress
       await uncompleteTask(task.id);
@@ -218,6 +225,8 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
+      {/* Confetti Effect for Students */}
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -242,17 +251,22 @@ export default function TasksPage() {
 
         {/* Pending Tasks */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
             Pending Tasks ({pendingTasks.length})
+            {!isPartner && pendingTasks.length > 0 && (
+              <Sparkles className="w-5 h-5 ml-2 text-pink-500 dark:text-pink-400 animate-pulse" />
+            )}
           </h2>
           {pendingTasks.length === 0 ? (
             <div className="card text-center py-12">
               <CheckSquare className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-              <p className="text-gray-600 dark:text-gray-400">No pending tasks</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                {!isPartner ? "Great job! All tasks completed! 🎉" : "No pending tasks"}
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {pendingTasks.map((task) => {
+              {pendingTasks.map((task, index) => {
                 const subject = subjects.find((s) => s.id === task.subjectId);
                 const chapter = task.chapterId
                   ? chapters.find((c) => c.id === task.chapterId)
@@ -262,7 +276,8 @@ export default function TasksPage() {
                 return (
                   <div
                     key={task.id}
-                    className="card hover:shadow-lg transition-all"
+                    className={`card hover:shadow-lg transition-all transform hover:scale-102 ${!isPartner ? 'animate-slide-in-up' : ''}`}
+                    style={!isPartner ? { animationDelay: `${index * 0.1}s` } : {}}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3 flex-1">
