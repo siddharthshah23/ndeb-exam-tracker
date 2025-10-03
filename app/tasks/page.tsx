@@ -18,7 +18,8 @@ import {
   getAllStudents,
 } from '@/lib/firestoreHelpers';
 import { Task, Subject, Chapter } from '@/lib/types';
-import { CheckSquare, Plus, Trash2, Check, UserCheck, RotateCcw, Sparkles } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, Check, UserCheck, RotateCcw, Sparkles, Lock } from 'lucide-react';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 
 // Helper function to format date in EST
 const formatDeadlineEST = (date: Date): string => {
@@ -54,8 +55,45 @@ export default function TasksPage() {
   const [taskStartPage, setTaskStartPage] = useState('');
   const [taskEndPage, setTaskEndPage] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
+  
+  // Confirmation dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
   const isPartner = user?.role === 'partner';
+
+  // Helper function to check if user can delete a task
+  const canDeleteTask = (task: Task): boolean => {
+    if (!user) return false;
+    
+    // Partners can delete any task
+    if (isPartner) return true;
+    
+    // Students can only delete tasks they created themselves
+    return task.createdBy === user.uid;
+  };
+
+  // Helper function to get task permission info for UI
+  const getTaskPermissionInfo = (task: Task) => {
+    if (!user) return { canDelete: false, canEdit: false, reason: '' };
+    
+    const isTaskCreator = task.createdBy === user.uid;
+    const isTaskAssignee = task.assignedTo === user.uid;
+    
+    if (isPartner) {
+      return { canDelete: true, canEdit: true, reason: 'partner' };
+    }
+    
+    if (isTaskCreator) {
+      return { canDelete: true, canEdit: true, reason: 'creator' };
+    }
+    
+    if (isTaskAssignee) {
+      return { canDelete: false, canEdit: false, reason: 'assigned_by_partner' };
+    }
+    
+    return { canDelete: false, canEdit: false, reason: 'no_permission' };
+  };
 
   // Generate time options in 30-minute increments
   const timeOptions = [];
@@ -225,9 +263,25 @@ export default function TasksPage() {
     );
   };
 
-  const handleDeleteTask = async (taskId: string) => {
-    await deleteTask(taskId);
-    setTasks(tasks.filter((t) => t.id !== taskId));
+  const handleDeleteTaskClick = (task: Task) => {
+    if (!canDeleteTask(task)) {
+      return;
+    }
+    setTaskToDelete(task);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteTaskConfirm = async () => {
+    if (!taskToDelete) return;
+    
+    try {
+      await deleteTask(taskToDelete.id);
+      setTasks(tasks.filter((t) => t.id !== taskToDelete.id));
+      setTaskToDelete(null);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   if (loading || loadingData) {
@@ -291,6 +345,7 @@ export default function TasksPage() {
                   ? chapters.find((c) => c.id === task.chapterId)
                   : null;
                 const assignedStudent = isPartner && students.find(s => s.uid === task.assignedTo);
+                const permissionInfo = getTaskPermissionInfo(task);
                 
                 return (
                   <div
@@ -338,12 +393,27 @@ export default function TasksPage() {
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="ml-4 p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="ml-4 flex items-center space-x-2">
+                        {!permissionInfo.canDelete && permissionInfo.reason === 'assigned_by_partner' && (
+                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mr-2">
+                            <Lock className="w-3 h-3 mr-1" />
+                            <span>Assigned</span>
+                          </div>
+                        )}
+                        {permissionInfo.canDelete ? (
+                          <button
+                            onClick={() => handleDeleteTaskClick(task)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <div className="p-2 text-gray-300 dark:text-gray-600 cursor-not-allowed" title="Cannot delete this task">
+                            <Trash2 className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -370,6 +440,7 @@ export default function TasksPage() {
                   ? chapters.find((c) => c.id === task.chapterId)
                   : null;
                 const assignedStudent = isPartner && students.find(s => s.uid === task.assignedTo);
+                const permissionInfo = getTaskPermissionInfo(task);
                 
                 return (
                   <div
@@ -408,7 +479,13 @@ export default function TasksPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex items-center space-x-2">
+                        {!permissionInfo.canDelete && permissionInfo.reason === 'assigned_by_partner' && (
+                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mr-2">
+                            <Lock className="w-3 h-3 mr-1" />
+                            <span>Assigned</span>
+                          </div>
+                        )}
                         <button
                           onClick={() => handleToggleComplete(task)}
                           className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
@@ -416,12 +493,19 @@ export default function TasksPage() {
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {permissionInfo.canDelete ? (
+                          <button
+                            onClick={() => handleDeleteTaskClick(task)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <div className="p-2 text-gray-300 dark:text-gray-600 cursor-not-allowed" title="Cannot delete this task">
+                            <Trash2 className="w-4 h-4" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -636,6 +720,21 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setTaskToDelete(null);
+        }}
+        onConfirm={handleDeleteTaskConfirm}
+        title="Delete Task"
+        message={taskToDelete ? `Are you sure you want to delete "${taskToDelete.title}"? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

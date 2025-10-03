@@ -443,6 +443,7 @@ async function calculateStreakForUser(userId: string): Promise<number> {
     ...doc.data(),
     createdAt: doc.data().createdAt?.toDate() || new Date(),
     deadline: doc.data().deadline?.toDate() || null,
+    completedAt: doc.data().completedAt?.toDate() || null,
   })) as Task[];
   
   if (tasks.length === 0) return 0;

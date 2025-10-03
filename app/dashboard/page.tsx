@@ -292,7 +292,12 @@ export default function DashboardPage() {
           <div className="space-y-4 sm:space-y-5">
             {progress &&
               Object.entries(progress.subjectProgress).map(([id, data], index) => (
-                <div key={id} className="animate-slide-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                <Link 
+                  key={id} 
+                  href={`/subjects/${id}`}
+                  className="block animate-slide-in-up hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg p-3 sm:p-4 transition-colors cursor-pointer"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <div className="flex items-center space-x-1 sm:space-x-2 flex-1 min-w-0">
                       <span className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">
@@ -332,8 +337,11 @@ export default function DashboardPage() {
                         <ProgressMilestone percentage={data.percentage} subjectName={data.name} />
                       </div>
                     )}
+                    <div className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                      View Details →
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
           </div>
         </div>
