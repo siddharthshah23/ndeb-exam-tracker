@@ -16,6 +16,8 @@ export default function StreakPage() {
   const [dailyStreak, setDailyStreak] = useState(0);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -182,41 +184,124 @@ export default function StreakPage() {
         <div className="card mb-6 sm:mb-8 hover:shadow-lg transition-all">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
             Last 7 Days Activity
+            <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-1">
+              Tap any day to see task details
+            </span>
           </h2>
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            {last7Days.map((day, index) => (
-              <div
-                key={index}
-                className={`flex flex-col items-center p-2 sm:p-3 rounded-lg transition-all ${
-                  day.completed > 0
-                    ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-600'
-                    : day.isToday
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700'
-                    : 'bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  {day.day}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mb-1 sm:mb-2">
-                  {day.date}
-                </p>
-                <p className={`text-xl sm:text-2xl font-bold ${
-                  day.completed > 0
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-gray-300 dark:text-gray-600'
-                }`}>
-                  {day.completed > 0 ? day.completed : '·'}
-                </p>
-                {day.isToday && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
-                    Today
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-3">
+            {last7Days.map((day, index) => {
+              const dateKey = format(subDays(new Date(), 6 - index), 'yyyy-MM-dd');
+              const tasksForDay = tasks.filter(task => {
+                if (!task.completedAt) return false;
+                try {
+                  const completedDate = task.completedAt instanceof Date 
+                    ? task.completedAt 
+                    : new Date(task.completedAt);
+                  return format(startOfDay(completedDate), 'yyyy-MM-dd') === dateKey;
+                } catch {
+                  return false;
+                }
+              });
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setSelectedDate(dateKey);
+                    setSelectedDateTasks(tasksForDay);
+                  }}
+                  className={`flex flex-col items-center p-2 sm:p-4 rounded-lg transition-all touch-manipulation hover:scale-105 active:scale-95 ${
+                    day.completed > 0
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-500 dark:border-green-600 hover:shadow-lg'
+                      : day.isToday
+                      ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-400 dark:border-blue-600 hover:shadow-lg'
+                      : 'bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <p className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300 mb-0.5 sm:mb-1">
+                    {day.day}
                   </p>
-                )}
-              </div>
-            ))}
+                  <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
+                    {format(subDays(new Date(), 6 - index), 'MMM d')}
+                  </p>
+                  <p className={`text-2xl sm:text-3xl font-bold ${
+                    day.completed > 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-300 dark:text-gray-600'
+                  }`}>
+                    {day.completed > 0 ? day.completed : '·'}
+                  </p>
+                  {day.isToday && (
+                    <p className="text-[9px] sm:text-xs text-blue-600 dark:text-blue-400 font-bold mt-1">
+                      Today
+                    </p>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {/* Selected Date Task Details Modal */}
+        {selectedDate && (
+          <div 
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 touch-manipulation"
+            onClick={() => setSelectedDate(null)}
+          >
+            <div 
+              className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {format(new Date(selectedDate), 'EEEE, MMM d')}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {selectedDateTasks.length} {selectedDateTasks.length === 1 ? 'task' : 'tasks'} completed
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              {selectedDateTasks.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedDateTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                    >
+                      <p className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        {task.title}
+                      </p>
+                      {task.completedAt && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          ✓ Completed at {format(new Date(task.completedAt), 'h:mm a')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  No tasks completed on this day
+                </p>
+              )}
+
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="w-full mt-4 btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Streak Milestones */}
         <div className="card hover:shadow-lg transition-all">
@@ -326,15 +411,19 @@ export default function StreakPage() {
             <span>Your Royal Quest</span>
           </h3>
           <p className="text-xs sm:text-sm text-pink-800 dark:text-pink-200 mb-3 leading-relaxed">
-            <strong>You are the Queen of Knowledge</strong>, guardian of an enchanted garden. Each day you study, 
+            <strong>You are the Queen of Knowledge</strong>, guardian of an enchanted garden. Each day you complete tasks, 
             you nurture magical flowers and help butterflies emerge from their cocoons. 🌸🦋
           </p>
           <p className="text-xs sm:text-sm text-pink-800 dark:text-pink-200 mb-3 leading-relaxed">
-            Your streak grows with every completed task. But be careful - if you miss a day with assigned tasks, 
-            the garden magic fades and you must start anew.
+            <strong>How it works:</strong> Your streak grows for every day you complete at least one task. 
+            If you skip a day without completing any tasks, the garden magic fades and your streak resets to zero.
+          </p>
+          <p className="text-xs sm:text-sm text-pink-800 dark:text-pink-200 mb-3 leading-relaxed">
+            💡 <strong>Tip:</strong> You can catch up! If a task was assigned yesterday but you complete it today, 
+            it counts for TODAY's streak. Complete tasks whenever you can to keep the magic alive!
           </p>
           <p className="text-xs sm:text-sm text-pink-900 dark:text-pink-100 font-semibold">
-            ✨ Keep studying every day to save the butterflies and build your legendary garden! ✨
+            ✨ Keep completing tasks every day to save the butterflies and build your legendary garden! ✨
           </p>
         </div>
       </main>

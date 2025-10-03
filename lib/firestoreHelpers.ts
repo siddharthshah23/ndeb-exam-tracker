@@ -455,22 +455,26 @@ async function calculateStreakForUser(userId: string): Promise<number> {
     return `${year}-${month}-${day}`;
   };
   
-  // Group tasks by day (using LOCAL timezone, not UTC)
-  const tasksByDay = new Map<string, { total: number; completed: number }>();
+  // Group tasks by COMPLETION date (not creation date)
+  // This allows catching up - completing tasks on any day counts for that day
+  const completionsByDay = new Map<string, number>();
   
   tasks.forEach(task => {
-    const dayKey = getLocalDateKey(new Date(task.createdAt));
-    if (!tasksByDay.has(dayKey)) {
-      tasksByDay.set(dayKey, { total: 0, completed: 0 });
-    }
-    const dayStats = tasksByDay.get(dayKey)!;
-    dayStats.total += 1;
-    if (task.completed) {
-      dayStats.completed += 1;
+    // Only count completed tasks, using their completedAt timestamp
+    if (task.completed && task.completedAt) {
+      const completedDate = task.completedAt instanceof Date 
+        ? task.completedAt 
+        : new Date(task.completedAt);
+      const dayKey = getLocalDateKey(completedDate);
+      
+      const currentCount = completionsByDay.get(dayKey) || 0;
+      completionsByDay.set(dayKey, currentCount + 1);
     }
   });
   
   // Calculate streak going backwards from today
+  // Streak continues as long as we keep completing tasks each day
+  // Days with no task completions break the streak
   let streak = 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -480,19 +484,16 @@ async function calculateStreakForUser(userId: string): Promise<number> {
     checkDate.setDate(checkDate.getDate() - i);
     const dayKey = getLocalDateKey(checkDate);
     
-    const dayStats = tasksByDay.get(dayKey);
+    const completionsOnDay = completionsByDay.get(dayKey) || 0;
     
-    if (dayStats) {
-      // Day has tasks
-      if (dayStats.completed > 0) {
-        // At least one task completed - streak continues
-        streak += 1;
-      } else {
-        // Tasks exist but none completed - streak breaks
-        break;
-      }
+    if (completionsOnDay > 0) {
+      // At least one task completed on this day - streak continues
+      streak += 1;
+    } else {
+      // No tasks completed on this day - streak breaks
+      // (Even if tasks were assigned, not completing them breaks the streak)
+      break;
     }
-    // No tasks for this day - streak continues (skip this day)
   }
   
   return streak;
