@@ -135,10 +135,27 @@ export default function TasksPage() {
       }
     }
 
-    // Combine date and time for deadline
+    // Combine date and time for deadline (interpret as EST/EDT)
     let deadlineDateTime = undefined;
     if (deadlineDate && deadlineTime) {
-      deadlineDateTime = new Date(`${deadlineDate}T${deadlineTime}`);
+      // User selects date/time thinking in EST - create with explicit timezone offset
+      const year = parseInt(deadlineDate.split('-')[0]);
+      const month = parseInt(deadlineDate.split('-')[1]) - 1; // 0-indexed
+      const day = parseInt(deadlineDate.split('-')[2]);
+      
+      // Check if this date would be in Daylight Saving Time (EDT) or Standard Time (EST)
+      const checkDate = new Date(year, month, day, 12, 0, 0);
+      const jan = new Date(year, 0, 1);
+      const jul = new Date(year, 6, 1);
+      const stdTimezoneOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+      const isDST = checkDate.getTimezoneOffset() < stdTimezoneOffset;
+      
+      // EST is UTC-5, EDT (Daylight Saving) is UTC-4
+      const offset = isDST ? '-04:00' : '-05:00';
+      
+      // Create ISO string with explicit timezone offset
+      const isoString = `${deadlineDate}T${deadlineTime}:00${offset}`;
+      deadlineDateTime = new Date(isoString);
     }
 
     const newTask: any = {
@@ -564,7 +581,15 @@ export default function TasksPage() {
                       value={deadlineDate}
                       onChange={(e) => setDeadlineDate(e.target.value)}
                       className="input-field"
-                      min={new Date().toISOString().split('T')[0]}
+                      min={(() => {
+                        // Get current date in EST timezone
+                        const now = new Date();
+                        const estDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+                        const year = estDate.getFullYear();
+                        const month = String(estDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(estDate.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      })()}
                     />
                   </div>
                   <div>
