@@ -286,6 +286,11 @@ export async function uncompleteTask(taskId: string): Promise<void> {
       }
     }
   }
+  
+  // Recalculate daily streak after uncompleting
+  if (task.assignedTo) {
+    await updateDailyStreak(task.assignedTo);
+  }
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
@@ -347,40 +352,69 @@ export async function getStudentUser(): Promise<{uid: string, name: string, emai
   };
 }
 
-export async function updateDailyStreak(userId: string): Promise<number> {
-  const userRef = doc(db, 'users', userId);
-  const userDoc = await getDoc(userRef);
+async function calculateStreakForUser(userId: string): Promise<number> {
+  // Get all tasks for this user
+  const tasksQuery = query(
+    collection(db, 'tasks'),
+    where('assignedTo', '==', userId)
+  );
+  const tasksSnapshot = await getDocs(tasksQuery);
+  const tasks = tasksSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+    createdAt: doc.data().createdAt?.toDate() || new Date(),
+    deadline: doc.data().deadline?.toDate() || null,
+  })) as Task[];
   
-  if (!userDoc.exists()) return 0;
+  if (tasks.length === 0) return 0;
   
-  const userData = userDoc.data();
+  // Group tasks by day (using creation date)
+  const tasksByDay = new Map<string, { total: number; completed: number }>();
+  
+  tasks.forEach(task => {
+    const dayKey = new Date(task.createdAt).toISOString().split('T')[0];
+    if (!tasksByDay.has(dayKey)) {
+      tasksByDay.set(dayKey, { total: 0, completed: 0 });
+    }
+    const dayStats = tasksByDay.get(dayKey)!;
+    dayStats.total += 1;
+    if (task.completed) {
+      dayStats.completed += 1;
+    }
+  });
+  
+  // Calculate streak going backwards from today
+  let streak = 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const lastActivity = userData.lastActivityDate?.toDate();
-  let newStreak = userData.dailyStreak || 0;
-  
-  if (lastActivity) {
-    const lastActivityDay = new Date(lastActivity);
-    lastActivityDay.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 365; i++) { // Max 365 days lookback
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dayKey = checkDate.toISOString().split('T')[0];
     
-    const daysDiff = Math.floor((today.getTime() - lastActivityDay.getTime()) / (1000 * 60 * 60 * 24));
+    const dayStats = tasksByDay.get(dayKey);
     
-    if (daysDiff === 0) {
-      // Same day, don't increment
-      return newStreak;
-    } else if (daysDiff === 1) {
-      // Consecutive day, increment streak
-      newStreak += 1;
-    } else {
-      // Streak broken, reset to 1
-      newStreak = 1;
+    if (dayStats) {
+      // Day has tasks
+      if (dayStats.completed > 0) {
+        // At least one task completed - streak continues
+        streak += 1;
+      } else {
+        // Tasks exist but none completed - streak breaks
+        break;
+      }
     }
-  } else {
-    // First time
-    newStreak = 1;
+    // No tasks for this day - streak continues (skip this day)
   }
   
+  return streak;
+}
+
+export async function updateDailyStreak(userId: string): Promise<number> {
+  const newStreak = await calculateStreakForUser(userId);
+  
+  const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
     dailyStreak: newStreak,
     lastActivityDate: Timestamp.now(),
@@ -390,30 +424,8 @@ export async function updateDailyStreak(userId: string): Promise<number> {
 }
 
 export async function getUserStreak(userId: string): Promise<number> {
-  const userRef = doc(db, 'users', userId);
-  const userDoc = await getDoc(userRef);
-  
-  if (!userDoc.exists()) return 0;
-  
-  const userData = userDoc.data();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const lastActivity = userData.lastActivityDate?.toDate();
-  
-  if (!lastActivity) return 0;
-  
-  const lastActivityDay = new Date(lastActivity);
-  lastActivityDay.setHours(0, 0, 0, 0);
-  
-  const daysDiff = Math.floor((today.getTime() - lastActivityDay.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // If more than 1 day has passed, streak is broken
-  if (daysDiff > 1) {
-    return 0;
-  }
-  
-  return userData.dailyStreak || 0;
+  // Always recalculate streak based on actual task completion
+  return await calculateStreakForUser(userId);
 }
 
 // Progress Calculation
