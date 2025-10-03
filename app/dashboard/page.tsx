@@ -135,10 +135,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className={`card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up ${user?.role === 'student' && (progress?.overallProgress || 0) >= 75 ? 'animate-pulse-glow' : ''}`} style={{ animationDelay: '0.1s' }}>
+          <Link href="/progress" className={`card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up cursor-pointer ${user?.role === 'student' && (progress?.overallProgress || 0) >= 75 ? 'animate-pulse-glow' : ''}`} style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">Overall Progress</p>
+                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">
+                  Overall Progress
+                </p>
                 <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">
                   {progress?.overallProgress || 0}%
                 </p>
@@ -151,9 +153,9 @@ export default function DashboardPage() {
               </div>
               <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 text-green-500 dark:text-green-400 animate-bounce flex-shrink-0" />
             </div>
-          </div>
+          </Link>
 
-          <div className="card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
+          <Link href="/revisions" className="card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up cursor-pointer" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">Total Revisions</p>
@@ -164,9 +166,9 @@ export default function DashboardPage() {
               </div>
               <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500 dark:text-blue-400 animate-wiggle flex-shrink-0" />
             </div>
-          </div>
+          </Link>
 
-          <div className={`card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up ${user?.role === 'student' && dailyStreak >= 7 ? 'bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' : ''}`} style={{ animationDelay: '0.3s' }}>
+          <Link href="/streak" className={`card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up cursor-pointer ${user?.role === 'student' && dailyStreak >= 7 ? 'bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' : ''}`} style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">Daily Streak</p>
@@ -178,7 +180,7 @@ export default function DashboardPage() {
               </div>
               <Flame className={`w-10 h-10 sm:w-12 sm:h-12 ${dailyStreak > 0 ? 'text-orange-500 dark:text-orange-400 animate-bounce' : 'text-gray-300 dark:text-gray-600'} flex-shrink-0`} />
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Current Tasks (Students Only) */}

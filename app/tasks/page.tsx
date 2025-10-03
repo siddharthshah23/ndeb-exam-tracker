@@ -137,11 +137,13 @@ export default function TasksPage() {
 
     // Combine date and time for deadline (interpret as EST/EDT)
     let deadlineDateTime = undefined;
-    if (deadlineDate && deadlineTime) {
-      // User selects date/time thinking in EST - create with explicit timezone offset
+    if (deadlineDate) {
       const year = parseInt(deadlineDate.split('-')[0]);
       const month = parseInt(deadlineDate.split('-')[1]) - 1; // 0-indexed
       const day = parseInt(deadlineDate.split('-')[2]);
+      
+      // If no time selected, default to end of day (11:59 PM)
+      const time = deadlineTime || '23:59';
       
       // Check if this date would be in Daylight Saving Time (EDT) or Standard Time (EST)
       const checkDate = new Date(year, month, day, 12, 0, 0);
@@ -154,7 +156,7 @@ export default function TasksPage() {
       const offset = isDST ? '-04:00' : '-05:00';
       
       // Create ISO string with explicit timezone offset
-      const isoString = `${deadlineDate}T${deadlineTime}:00${offset}`;
+      const isoString = `${deadlineDate}T${time}:00${offset}`;
       deadlineDateTime = new Date(isoString);
     }
 
@@ -599,13 +601,18 @@ export default function TasksPage() {
                       className="input-field"
                       disabled={!deadlineDate}
                     >
-                      <option value="">Select time</option>
+                      <option value="">End of day (11:59 PM)</option>
                       {timeOptions.map((time) => (
                         <option key={time.value} value={time.value}>
                           {time.display}
                         </option>
                       ))}
                     </select>
+                    {deadlineDate && !deadlineTime && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Defaults to 11:59 PM if not selected
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

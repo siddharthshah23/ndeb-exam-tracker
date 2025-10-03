@@ -33,10 +33,13 @@ export default function Navbar() {
     <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/dashboard" className="flex items-center">
-              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600 dark:text-primary-400 mr-2" />
-              <span className="font-bold text-lg sm:text-xl text-gray-900 dark:text-gray-100">AFK Study Buddy</span>
+          <div className="flex items-center min-w-0">
+            <Link href="/dashboard" className="flex items-center min-w-0">
+              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600 dark:text-primary-400 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="font-bold text-base sm:text-xl text-gray-900 dark:text-gray-100">
+                <span className="hidden min-[400px]:inline">AFK Study Buddy</span>
+                <span className="min-[400px]:hidden">Study Buddy</span>
+              </span>
             </Link>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
               {visibleNavItems.map((item) => {
