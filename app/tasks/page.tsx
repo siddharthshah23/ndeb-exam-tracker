@@ -726,7 +726,7 @@ export default function TasksPage() {
                     
                     {/* Hover tooltip for locked state */}
                     {availableRevisionChapters.length === 0 && (
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-44 sm:w-52 md:w-60 text-center">
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-50 w-48 sm:w-52 md:w-60 text-center max-w-[calc(100vw-2rem)]">
                         <div className="flex items-center justify-center gap-1 mb-1">
                           <span className="text-sm">🦋</span>
                           <span className="font-medium">Revision Locked</span>
@@ -734,7 +734,7 @@ export default function TasksPage() {
                         <p className="text-xs leading-relaxed">
                           Complete reading chapters first to unlock revisions! 📚✨
                         </p>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-100"></div>
                       </div>
                     )}
                   </div>
