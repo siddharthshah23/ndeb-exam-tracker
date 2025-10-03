@@ -294,6 +294,75 @@ export async function uncompleteTask(taskId: string): Promise<void> {
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
+  const taskDoc = await getDoc(doc(db, 'tasks', taskId));
+  if (!taskDoc.exists()) return;
+  
+  const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
+  
+  // If task was completed, roll back the progress
+  if (task.completed) {
+    // If task has chapterId (By Chapter), reset that chapter to 0
+    if (task.chapterId) {
+      const chapterDoc = await getDoc(doc(db, 'chapters', task.chapterId));
+      if (chapterDoc.exists()) {
+        const chapter = chapterDoc.data() as Chapter;
+        // Subtract the progress that was added
+        const progressToRemove = task.pages || chapter.totalPages;
+        const newCompletedPages = Math.max(
+          chapter.completedPages - progressToRemove,
+          0
+        );
+        await updateDoc(doc(db, 'chapters', task.chapterId), {
+          completedPages: newCompletedPages,
+        });
+      }
+    }
+    // If task has page range (By Pages), rollback all affected chapters
+    else if (task.startPage && task.endPage && task.subjectId) {
+      const chaptersSnapshot = await getDocs(
+        query(collection(db, 'chapters'), where('subjectId', '==', task.subjectId))
+      );
+      
+      const chapters = chaptersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Chapter[];
+      
+      // Find all chapters that fall within the page range and rollback
+      for (const chapter of chapters) {
+        if (chapter.startPage && chapter.endPage) {
+          const chapterStart = chapter.startPage;
+          const chapterEnd = chapter.endPage;
+          const taskStart = task.startPage;
+          const taskEnd = task.endPage;
+          
+          if (chapterStart <= taskEnd && chapterEnd >= taskStart) {
+            // This chapter was affected by the task
+            const overlapStart = Math.max(chapterStart, taskStart);
+            const overlapEnd = Math.min(chapterEnd, taskEnd);
+            const pagesToRollback = overlapEnd - overlapStart + 1;
+            
+            // Rollback chapter progress (don't go below 0)
+            const newCompletedPages = Math.max(
+              chapter.completedPages - pagesToRollback,
+              0
+            );
+            
+            await updateDoc(doc(db, 'chapters', chapter.id), {
+              completedPages: newCompletedPages,
+            });
+          }
+        }
+      }
+    }
+    
+    // Recalculate daily streak after deleting completed task
+    if (task.assignedTo) {
+      await updateDailyStreak(task.assignedTo);
+    }
+  }
+  
+  // Delete the task
   await deleteDoc(doc(db, 'tasks', taskId));
 }
 
