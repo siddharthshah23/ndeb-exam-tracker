@@ -565,9 +565,23 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
     };
   }
 
-  // Calculate overall progress based on pages completed across all subjects
-  const overallProgress = totalPagesAcrossAllSubjects > 0 
-    ? Math.round((totalPagesCompletedAcrossAllSubjects / totalPagesAcrossAllSubjects) * 100) 
+  // Calculate overall progress based on pages completed AND revisions
+  // Total work = (all pages) + (all pages × 3 revisions) = pages × 4
+  // Completed work = pages completed + (pages × revisions completed)
+  // Note: Each revision counts as completing all pages of that chapter again
+  let totalWorkCompleted = totalPagesCompletedAcrossAllSubjects;
+  
+  // Add revision work: each revision = completing all pages of that chapter
+  chapters.forEach(ch => {
+    // Only count revision work for fully completed chapters
+    if (ch.completedPages >= ch.totalPages) {
+      totalWorkCompleted += (ch.totalPages * ch.revisionsCompleted);
+    }
+  });
+  
+  const totalWorkRequired = totalPagesAcrossAllSubjects * 4; // pages + 3 revisions
+  const overallProgress = totalWorkRequired > 0 
+    ? Math.round((totalWorkCompleted / totalWorkRequired) * 100) 
     : 0;
   
   // Calculate average revision progress (0-3 scale)

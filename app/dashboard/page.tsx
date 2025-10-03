@@ -142,7 +142,7 @@ export default function DashboardPage() {
                 <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">
                   {progress?.overallProgress || 0}%
                 </p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">pages completed</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">pages + 3 revisions</p>
                 {user?.role === 'student' && (progress?.overallProgress || 0) >= 25 && (
                   <p className="text-xs text-pink-500 dark:text-pink-400 mt-1 sm:mt-2 font-medium">
                     {(progress?.overallProgress || 0) >= 100 ? '🎉 Perfect!' : (progress?.overallProgress || 0) >= 75 ? '⭐ Amazing!' : (progress?.overallProgress || 0) >= 50 ? '🌟 Great!' : '🌱 Keep going!'}

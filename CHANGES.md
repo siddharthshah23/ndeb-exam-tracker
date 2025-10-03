@@ -4,7 +4,7 @@
 
 ### Overview
 Separated the progress tracking gadgets on the dashboard to clearly distinguish between:
-1. **Overall Progress** - Based on pages completed across all subjects
+1. **Overall Progress** - Based on pages completed + 3 revisions across all subjects
 2. **Revision Progress** - Based on the 3-revision cycle system (0/3, 1/3, 2/3, 3/3)
 
 ### What Changed
@@ -20,15 +20,18 @@ Added new fields to `ProgressStats` interface:
 
 #### 2. Enhanced Progress Calculation (`lib/firestoreHelpers.ts`)
 Updated `calculateProgress` function to:
+- **Calculate overall progress based on BOTH pages AND revisions**
+  - Total work required = Total pages × 4 (initial read + 3 revisions)
+  - Work completed = Pages completed + (Pages × Revisions for completed chapters)
+  - This means 100% = All pages read + All 3 revisions completed
 - Track revision distribution across all chapters
 - Calculate average revision progress (X.X/3.0)
-- Calculate overall progress based on pages completed (not just chapters)
 - Count chapters at each revision level (0, 1, 2, 3)
 
 #### 3. Redesigned Dashboard (`app/dashboard/page.tsx`)
 **Row 1 - Main Stats:**
 - ✅ Exam Countdown (unchanged)
-- ✅ **Overall Progress** - Now shows % of pages completed with "pages completed" label
+- ✅ **Overall Progress** - Now shows % of (pages + 3 revisions) with "pages + 3 revisions" label
 - ✅ **Revision Progress** - NEW! Shows average revision cycle (e.g., "1.5/3")
   - Purple gradient background
   - Displays "avg revisions" subtitle
@@ -42,17 +45,50 @@ Four mini-gadgets showing chapter distribution:
 - 🟡 **2nd Revision** - Chapters at 2/3 revisions (yellow background)
 - 🟢 **3rd Revision** - Chapters at 3/3 revisions (green background)
 
+#### 4. Added Revision Undo Functionality (`app/subjects/[id]/page.tsx`)
+**New Feature - Click to Add or Undo Revisions:**
+- ✅ Click on a **completed revision** (green with ✓) to **undo** it
+- ✅ Click on the **next available revision** (blue) to **complete** it
+- ✅ Disabled revisions (gray) require previous revisions to be completed first
+- ✅ Visual feedback with checkmarks on completed revisions
+- ✅ Tooltip hints: "Click to undo this revision" or "Click to complete this revision"
+
+**How It Works:**
+```
+Example: Chapter has 2 revisions completed [✓ Rev 1] [✓ Rev 2] [ Rev 3]
+- Click Rev 2 → Undoes Rev 2 → [✓ Rev 1] [ Rev 2] [ Rev 3]
+- Click Rev 3 → Completes Rev 3 → [✓ Rev 1] [✓ Rev 2] [✓ Rev 3]
+```
+
 ### Visual Improvements
 - Removed the old "Total Revisions" gadget (which just showed a sum)
 - Added color-coded revision breakdown for better visual tracking
-- Made "Overall Progress" clearly about pages completed
+- Made "Overall Progress" clearly include both pages AND revisions
 - Added visual hierarchy to help users understand their revision status at a glance
+- Added checkmarks (✓) to completed revision buttons
+- Added "(Click to add or undo)" hint text on revision tracking
+
+### Progress Calculation Formula
+**Overall Progress = (Pages Completed + Revision Work) / (Total Pages × 4) × 100%**
+
+Where:
+- **Total Pages × 4** = All pages need to be read once + revised 3 times
+- **Pages Completed** = Sum of all completed pages across all chapters
+- **Revision Work** = For each completed chapter: Total Pages × Revisions Completed
+
+Example:
+- 100 total pages, 50 pages completed, 2 chapters fully completed with 2 revisions each (20 pages each)
+- Work completed = 50 + (20 × 2) + (20 × 2) = 50 + 40 + 40 = 130
+- Total work = 100 × 4 = 400
+- Progress = 130/400 × 100 = 32.5%
 
 ### Benefits
-1. **Clearer Tracking** - Users can now see exactly how many chapters are at each revision stage
-2. **Better Motivation** - Visual breakdown shows progress through the 3-revision system
-3. **Accurate Progress** - Overall progress now accurately reflects pages completed, not just chapters
-4. **Actionable Insights** - Users can identify which chapters need more revision work
+1. **Accurate Overall Progress** - Now reflects the true amount of work (pages + revisions)
+2. **Clearer Tracking** - Users can now see exactly how many chapters are at each revision stage
+3. **Better Motivation** - Visual breakdown shows progress through the 3-revision system
+4. **Flexible Revision Management** - Can undo revisions if marked by mistake or need to redo
+5. **Actionable Insights** - Users can identify which chapters need more revision work
+6. **Realistic Progress** - 100% means truly finishing all work, not just reading pages once
 
 ---
 

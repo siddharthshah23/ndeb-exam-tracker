@@ -47,9 +47,20 @@ export default function SubjectDetailPage() {
     fetchData();
   }, [user, subjectId]);
 
-  const handleRevisionClick = async (chapterId: string, currentRevisions: number) => {
-    if (currentRevisions < 3 && user) {
-      const newRevisions = currentRevisions + 1;
+  const handleRevisionClick = async (chapterId: string, currentRevisions: number, targetRevision: number) => {
+    if (user) {
+      let newRevisions = currentRevisions;
+      
+      // If clicking on a completed revision, undo it
+      if (currentRevisions >= targetRevision) {
+        newRevisions = targetRevision - 1;
+      } 
+      // If clicking on the next available revision, complete it
+      else if (currentRevisions === targetRevision - 1 && currentRevisions < 3) {
+        newRevisions = targetRevision;
+      }
+      
+      // Update the chapter with new revision count
       await updateChapter(chapterId, { revisionsCompleted: newRevisions });
       setChapters((prev) =>
         prev.map((ch) =>
@@ -62,7 +73,7 @@ export default function SubjectDetailPage() {
         await updateDailyStreak(user.uid);
         
         // Trigger confetti when completing revision 3
-        if (newRevisions === 3) {
+        if (newRevisions === 3 && currentRevisions !== 3) {
           setShowConfetti(true);
         }
       }
@@ -201,24 +212,34 @@ export default function SubjectDetailPage() {
                 <div className="mb-4">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Revisions: {chapter.revisionsCompleted}/3
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      (Click to add or undo)
+                    </span>
                   </p>
                   <div className="flex space-x-2">
-                    {[1, 2, 3].map((rev) => (
-                      <button
-                        key={rev}
-                        onClick={() => handleRevisionClick(chapter.id, chapter.revisionsCompleted)}
-                        disabled={chapter.revisionsCompleted < rev - 1}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                          chapter.revisionsCompleted >= rev
-                            ? 'bg-green-500 dark:bg-green-600 text-white'
-                            : chapter.revisionsCompleted === rev - 1
-                            ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        Rev {rev}
-                      </button>
-                    ))}
+                    {[1, 2, 3].map((rev) => {
+                      const isCompleted = chapter.revisionsCompleted >= rev;
+                      const isNext = chapter.revisionsCompleted === rev - 1;
+                      const isDisabled = chapter.revisionsCompleted < rev - 1;
+                      
+                      return (
+                        <button
+                          key={rev}
+                          onClick={() => handleRevisionClick(chapter.id, chapter.revisionsCompleted, rev)}
+                          disabled={isDisabled}
+                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            isCompleted
+                              ? 'bg-green-500 dark:bg-green-600 text-white hover:bg-green-600 dark:hover:bg-green-700'
+                              : isNext
+                              ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                          title={isCompleted ? 'Click to undo this revision' : isNext ? 'Click to complete this revision' : 'Complete previous revisions first'}
+                        >
+                          Rev {rev} {isCompleted ? '✓' : ''}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
