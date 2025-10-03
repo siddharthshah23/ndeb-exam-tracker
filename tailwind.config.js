@@ -9,7 +9,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        border: 'hsl(var(--border))',
         primary: {
+          DEFAULT: 'hsl(var(--primary))',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',

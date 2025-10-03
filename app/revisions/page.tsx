@@ -181,7 +181,7 @@ export default function RevisionsPage() {
 
         {/* Overall Revision Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6 mb-6 sm:mb-8">
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Chapters</p>
             <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">
               {chapters.length}
@@ -191,7 +191,7 @@ export default function RevisionsPage() {
             </p>
           </div>
 
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Completed</p>
             <p className="text-3xl sm:text-4xl font-bold text-green-600 dark:text-green-400">
               {chaptersByRevision.rev3.length}
@@ -201,7 +201,7 @@ export default function RevisionsPage() {
             </p>
           </div>
 
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">In Progress</p>
             <p className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">
               {chaptersByRevision.rev1.length + chaptersByRevision.rev2.length}
@@ -211,7 +211,7 @@ export default function RevisionsPage() {
             </p>
           </div>
 
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Not Started</p>
             <p className="text-3xl sm:text-4xl font-bold text-orange-600 dark:text-orange-400">
               {chaptersByRevision.rev0.length}
@@ -221,7 +221,7 @@ export default function RevisionsPage() {
             </p>
           </div>
 
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Progress</p>
             <p className="text-3xl sm:text-4xl font-bold text-purple-600 dark:text-purple-400">
               {revisionProgress}%
@@ -262,7 +262,7 @@ export default function RevisionsPage() {
             const isExpanded = expandedSubjects.has(subject.id);
             
             return (
-              <div key={subject.id} className="card hover:shadow-lg transition-all animate-slide-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+              <div key={subject.id} className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all animate-slide-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
                 {/* Subject Header - Always Visible */}
                 <div 
                   className="cursor-pointer p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"

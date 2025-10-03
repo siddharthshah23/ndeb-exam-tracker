@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import Navbar from '@/components/Navbar';
 import { calculateProgress } from '@/lib/firestoreHelpers';
 import { ProgressStats } from '@/lib/types';
@@ -12,6 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export default function ProgressOverviewPage() {
   const { user, loading } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const [progress, setProgress] = useState<ProgressStats | null>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -104,7 +106,7 @@ export default function ProgressOverviewPage() {
 
         {/* Overall Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card hover:shadow-lg transition-all">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
@@ -121,7 +123,7 @@ export default function ProgressOverviewPage() {
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
@@ -138,7 +140,7 @@ export default function ProgressOverviewPage() {
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
@@ -155,7 +157,7 @@ export default function ProgressOverviewPage() {
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
@@ -174,58 +176,97 @@ export default function ProgressOverviewPage() {
         </div>
 
         {/* Progress Breakdown Chart */}
-        <div className="card mb-8 hover:shadow-lg transition-all">
+        <div className="card mb-8 hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Subject Progress Breakdown
           </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={subjectChartData}>
-              <CartesianGrid strokeDasharray="3 3" className="dark:opacity-20" stroke="#d1d5db" />
-              <XAxis
-                dataKey="name"
-                stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis
-                domain={[0, 100]}
-                stroke="#6b7280"
-                tick={{ fill: '#6b7280' }}
-                label={{ value: 'Mastery %', angle: -90, position: 'insideLeft', fill: '#6b7280' }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'rgb(17 24 39)',
-                  border: '1px solid rgb(55 65 81)',
-                  borderRadius: '8px',
-                  color: 'rgb(243 244 246)',
-                }}
-                formatter={(value) => [`${value}%`, 'Progress']}
-              />
-              <Bar dataKey="progress" radius={[8, 8, 0, 0]}>
-                {subjectChartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      entry.progress >= 75
-                        ? '#10b981'
-                        : entry.progress >= 50
-                        ? '#0ea5e9'
-                        : entry.progress >= 25
-                        ? '#f59e0b'
-                        : '#ef4444'
-                    }
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="min-w-[400px] px-4 sm:px-0">
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={subjectChartData} margin={{ top: 20, right: 30, left: 50, bottom: 100 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-20" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="currentColor"
+                    tick={{ fill: 'currentColor', fontSize: 12 }}
+                    className="text-gray-600 dark:text-gray-400"
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                  <YAxis
+                    domain={[0, 100]}
+                    stroke="currentColor"
+                    tick={{ fill: 'currentColor', fontSize: 12 }}
+                    className="text-gray-600 dark:text-gray-400"
+                    width={50}
+                    label={{ value: 'Mastery %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'currentColor' } }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: theme === 'dark' 
+                        ? 'rgba(31, 41, 55, 0.98)' 
+                        : 'rgba(255, 255, 255, 0.95)',
+                      border: theme === 'dark'
+                        ? '1px solid rgba(107, 114, 128, 0.5)'
+                        : '1px solid rgba(229, 231, 235, 0.8)',
+                      borderRadius: '12px',
+                      color: theme === 'dark'
+                        ? 'rgb(255, 255, 255)'
+                        : 'rgb(17, 24, 39)',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      boxShadow: theme === 'dark'
+                        ? '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+                        : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                      backdropFilter: 'blur(12px)'
+                    }}
+                    formatter={(value) => [`${value}%`, 'Progress']}
+                    labelStyle={{ 
+                      color: theme === 'dark'
+                        ? 'rgb(255, 255, 255)'
+                        : 'rgb(17, 24, 39)', 
+                      fontWeight: '700',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <Bar dataKey="progress" radius={[8, 8, 0, 0]} className="hover:opacity-80 transition-opacity cursor-pointer">
+                    {subjectChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          entry.progress >= 75
+                            ? '#10b981'
+                            : entry.progress >= 50
+                            ? '#0ea5e9'
+                            : entry.progress >= 25
+                            ? '#f59e0b'
+                            : '#ef4444'
+                        }
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 justify-center">
+            {subjectChartData.map((item, index) => (
+              <div key={index} className="flex items-center space-x-1 text-xs">
+                <div className={`w-3 h-3 rounded-full ${
+                  item.progress >= 75 ? 'bg-green-500' :
+                  item.progress >= 50 ? 'bg-blue-500' :
+                  item.progress >= 25 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className="text-gray-600 dark:text-gray-400">{item.name}: {item.progress}%</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Detailed Subject Breakdown */}
-        <div className="card hover:shadow-lg transition-all">
+        <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Detailed Subject Analysis
           </h2>

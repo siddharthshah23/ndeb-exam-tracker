@@ -67,7 +67,7 @@ export default function SubjectsPage() {
             const subjectProgress = progress?.subjectProgress[subject.id];
             return (
               <Link key={subject.id} href={`/subjects/${subject.id}`}>
-                <div className="card hover:shadow-lg transition-all cursor-pointer">
+                <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">

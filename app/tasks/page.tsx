@@ -473,7 +473,7 @@ export default function TasksPage() {
                 return (
                   <div
                     key={task.id}
-                    className={`card hover:shadow-lg transition-all transform hover:scale-102 ${!isPartner ? 'animate-slide-in-up' : ''}`}
+                    className={`card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all transform hover:scale-102 ${!isPartner ? 'animate-slide-in-up' : ''}`}
                     style={!isPartner ? { animationDelay: `${index * 0.1}s` } : {}}
                   >
                     <div className="flex items-start justify-between">

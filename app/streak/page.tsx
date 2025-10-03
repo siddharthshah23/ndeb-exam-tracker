@@ -134,7 +134,7 @@ export default function StreakPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Next Milestone</p>
@@ -149,7 +149,7 @@ export default function StreakPage() {
             </div>
           </div>
 
-          <div className="card hover:shadow-lg transition-all p-4 sm:p-6">
+          <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Tasks Completed</p>
@@ -304,7 +304,7 @@ export default function StreakPage() {
         )}
 
         {/* Streak Milestones */}
-        <div className="card hover:shadow-lg transition-all">
+        <div className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
             Streak Milestones
           </h2>

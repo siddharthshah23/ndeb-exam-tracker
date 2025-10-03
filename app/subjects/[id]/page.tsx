@@ -185,7 +185,7 @@ export default function SubjectDetailPage() {
             const isCompleted = progressPercentage >= 100;
 
             return (
-              <div key={chapter.id} className="card">
+              <div key={chapter.id} className="card hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
