@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [studentName, setStudentName] = useState<string>('');
   const [currentTasks, setCurrentTasks] = useState<Task[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -88,7 +89,22 @@ export default function DashboardPage() {
       }
     }
     fetchData();
-  }, [user]);
+  }, [user, refreshKey]);
+
+  // Refetch data when page becomes visible (e.g., navigating back from subject page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   if (loading || loadingData) {
     return (

@@ -60,6 +60,18 @@ Example: Chapter has 2 revisions completed [✓ Rev 1] [✓ Rev 2] [ Rev 3]
 - Click Rev 3 → Completes Rev 3 → [✓ Rev 1] [✓ Rev 2] [✓ Rev 3]
 ```
 
+#### 5. Auto-Refresh Dashboard on Navigation (`app/dashboard/page.tsx`)
+**New Feature - Dashboard Auto-Updates:**
+- ✅ Dashboard automatically refetches data when you navigate back from other pages
+- ✅ Uses browser `visibilitychange` event to detect when page becomes visible
+- ✅ Ensures progress gadgets always show current data
+- ✅ Works seamlessly when undoing revisions in subject pages
+
+**User Experience:**
+1. Go to dashboard → See current progress
+2. Navigate to subject page → Undo a revision
+3. Navigate back to dashboard → **Progress automatically updates!**
+
 ### Visual Improvements
 - Removed the old "Total Revisions" gadget (which just showed a sum)
 - Added color-coded revision breakdown for better visual tracking
