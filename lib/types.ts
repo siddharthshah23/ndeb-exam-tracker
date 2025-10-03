@@ -65,7 +65,13 @@ export interface ProgressStats {
       percentage: number;
     };
   };
-  overallProgress: number;
-  totalRevisions: number;
+  overallProgress: number; // Based on pages completed
+  totalRevisions: number; // Sum of all revision cycles completed
+  revisionProgress: number; // Average revision cycle progress (0-3)
+  chaptersAt0Revisions: number;
+  chaptersAt1Revision: number;
+  chaptersAt2Revisions: number;
+  chaptersAt3Revisions: number;
+  totalChapters: number;
 }
 

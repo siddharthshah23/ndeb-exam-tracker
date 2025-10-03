@@ -1,4 +1,62 @@
-# Recent Changes - Production Configuration
+# Recent Changes
+
+## 🎯 Latest Update - Separated Revision and Overall Progress Gadgets (2025-10-03)
+
+### Overview
+Separated the progress tracking gadgets on the dashboard to clearly distinguish between:
+1. **Overall Progress** - Based on pages completed across all subjects
+2. **Revision Progress** - Based on the 3-revision cycle system (0/3, 1/3, 2/3, 3/3)
+
+### What Changed
+
+#### 1. Updated Types (`lib/types.ts`)
+Added new fields to `ProgressStats` interface:
+- `revisionProgress: number` - Average revision cycle progress (0-3 scale)
+- `chaptersAt0Revisions: number` - Chapters with 0 revisions
+- `chaptersAt1Revision: number` - Chapters with 1 revision
+- `chaptersAt2Revisions: number` - Chapters with 2 revisions
+- `chaptersAt3Revisions: number` - Chapters with 3 revisions
+- `totalChapters: number` - Total number of chapters
+
+#### 2. Enhanced Progress Calculation (`lib/firestoreHelpers.ts`)
+Updated `calculateProgress` function to:
+- Track revision distribution across all chapters
+- Calculate average revision progress (X.X/3.0)
+- Calculate overall progress based on pages completed (not just chapters)
+- Count chapters at each revision level (0, 1, 2, 3)
+
+#### 3. Redesigned Dashboard (`app/dashboard/page.tsx`)
+**Row 1 - Main Stats:**
+- ✅ Exam Countdown (unchanged)
+- ✅ **Overall Progress** - Now shows % of pages completed with "pages completed" label
+- ✅ **Revision Progress** - NEW! Shows average revision cycle (e.g., "1.5/3")
+  - Purple gradient background
+  - Displays "avg revisions" subtitle
+  - Shows encouraging messages: "🏆 Master!" (3.0), "🌟 Excellent!" (2.0+), "📚 Good start!" (1.0+)
+- ✅ Daily Streak (unchanged)
+
+**Row 2 - Revision Breakdown (NEW):**
+Four mini-gadgets showing chapter distribution:
+- ⚪ **Not Started** - Chapters at 0/3 revisions (gray background)
+- 🔵 **1st Revision** - Chapters at 1/3 revisions (blue background)
+- 🟡 **2nd Revision** - Chapters at 2/3 revisions (yellow background)
+- 🟢 **3rd Revision** - Chapters at 3/3 revisions (green background)
+
+### Visual Improvements
+- Removed the old "Total Revisions" gadget (which just showed a sum)
+- Added color-coded revision breakdown for better visual tracking
+- Made "Overall Progress" clearly about pages completed
+- Added visual hierarchy to help users understand their revision status at a glance
+
+### Benefits
+1. **Clearer Tracking** - Users can now see exactly how many chapters are at each revision stage
+2. **Better Motivation** - Visual breakdown shows progress through the 3-revision system
+3. **Accurate Progress** - Overall progress now accurately reflects pages completed, not just chapters
+4. **Actionable Insights** - Users can identify which chapters need more revision work
+
+---
+
+# Previous Changes - Production Configuration
 
 ## 🔧 Changes Made for Production Setup
 

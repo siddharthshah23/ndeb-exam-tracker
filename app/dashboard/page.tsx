@@ -112,7 +112,7 @@ export default function DashboardPage() {
         <div className="mb-6 sm:mb-8 animate-slide-in-up">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center flex-wrap">
             {user?.role === 'partner' 
-              ? <><span>{studentName}'s Progress Dashboard</span> <span className="ml-2">📊</span></> 
+              ? <><span>{studentName}&apos;s Progress Dashboard</span> <span className="ml-2">📊</span></> 
               : <><span>Welcome back, {user?.name}!</span> <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 ml-2 text-pink-500 dark:text-pink-400 animate-pulse" /></>}
           </h1>
           {user?.role === 'student' && (
@@ -120,8 +120,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        {/* Stats Grid - Row 1 */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-3 sm:mb-6">
           <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white rounded-lg shadow-lg dark:shadow-primary-500/20 p-4 sm:p-6 hover:shadow-xl hover:scale-105 transition-all transform animate-slide-in-up">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -142,7 +142,7 @@ export default function DashboardPage() {
                 <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">
                   {progress?.overallProgress || 0}%
                 </p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">completed</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">pages completed</p>
                 {user?.role === 'student' && (progress?.overallProgress || 0) >= 25 && (
                   <p className="text-xs text-pink-500 dark:text-pink-400 mt-1 sm:mt-2 font-medium">
                     {(progress?.overallProgress || 0) >= 100 ? '🎉 Perfect!' : (progress?.overallProgress || 0) >= 75 ? '⭐ Amazing!' : (progress?.overallProgress || 0) >= 50 ? '🌟 Great!' : '🌱 Keep going!'}
@@ -153,16 +153,21 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
+          <div className="card hover:shadow-lg hover:scale-105 transition-all transform animate-slide-in-up bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">Total Revisions</p>
+                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">Revision Progress</p>
                 <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">
-                  {progress?.totalRevisions || 0}
+                  {progress?.revisionProgress?.toFixed(1) || '0.0'}/3
                 </p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">cycles completed</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">avg revisions</p>
+                {user?.role === 'student' && progress && progress.revisionProgress >= 1 && (
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 sm:mt-2 font-medium">
+                    {progress.revisionProgress >= 3 ? '🏆 Master!' : progress.revisionProgress >= 2 ? '🌟 Excellent!' : '📚 Good start!'}
+                  </p>
+                )}
               </div>
-              <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500 dark:text-blue-400 animate-wiggle flex-shrink-0" />
+              <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-purple-500 dark:text-purple-400 animate-wiggle flex-shrink-0" />
             </div>
           </div>
 
@@ -180,6 +185,63 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Revision Breakdown - Row 2 */}
+        {progress && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="card bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 hover:shadow-md transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">Not Started</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {progress.chaptersAt0Revisions}
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">chapters (0/3)</p>
+                </div>
+                <div className="text-2xl">⚪</div>
+              </div>
+            </div>
+
+            <div className="card bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 hover:shadow-md transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">1st Revision</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {progress.chaptersAt1Revision}
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">chapters (1/3)</p>
+                </div>
+                <div className="text-2xl">🔵</div>
+              </div>
+            </div>
+
+            <div className="card bg-yellow-50 dark:bg-yellow-900/20 p-3 sm:p-4 hover:shadow-md transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">2nd Revision</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {progress.chaptersAt2Revisions}
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">chapters (2/3)</p>
+                </div>
+                <div className="text-2xl">🟡</div>
+              </div>
+            </div>
+
+            <div className="card bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 hover:shadow-md transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">3rd Revision</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {progress.chaptersAt3Revisions}
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">chapters (3/3)</p>
+                </div>
+                <div className="text-2xl">🟢</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Current Tasks (Students Only) */}
         {user?.role === 'student' && currentTasks.length > 0 && (

@@ -522,6 +522,14 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
   let totalChaptersCompleted = 0;
   let totalChapters = 0;
   let totalRevisions = 0;
+  let totalPagesAcrossAllSubjects = 0;
+  let totalPagesCompletedAcrossAllSubjects = 0;
+  
+  // Track revision distribution
+  let chaptersAt0Revisions = 0;
+  let chaptersAt1Revision = 0;
+  let chaptersAt2Revisions = 0;
+  let chaptersAt3Revisions = 0;
 
   for (const subject of subjects) {
     const subjectChapters = chapters.filter(ch => ch.subjectId === subject.id);
@@ -534,6 +542,16 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
     totalChaptersCompleted += chaptersCompleted;
     totalChapters += subjectChapters.length;
     totalRevisions += subjectChapters.reduce((sum, ch) => sum + ch.revisionsCompleted, 0);
+    totalPagesAcrossAllSubjects += totalPages;
+    totalPagesCompletedAcrossAllSubjects += pagesCompleted;
+    
+    // Count chapters by revision level
+    subjectChapters.forEach(ch => {
+      if (ch.revisionsCompleted === 0) chaptersAt0Revisions++;
+      else if (ch.revisionsCompleted === 1) chaptersAt1Revision++;
+      else if (ch.revisionsCompleted === 2) chaptersAt2Revisions++;
+      else if (ch.revisionsCompleted >= 3) chaptersAt3Revisions++;
+    });
 
     const percentage = totalPages > 0 ? (pagesCompleted / totalPages) * 100 : 0;
 
@@ -547,14 +565,26 @@ export async function calculateProgress(userId: string): Promise<ProgressStats> 
     };
   }
 
-  const overallProgress = totalChapters > 0 
-    ? Math.round((totalChaptersCompleted / totalChapters) * 100) 
+  // Calculate overall progress based on pages completed across all subjects
+  const overallProgress = totalPagesAcrossAllSubjects > 0 
+    ? Math.round((totalPagesCompletedAcrossAllSubjects / totalPagesAcrossAllSubjects) * 100) 
+    : 0;
+  
+  // Calculate average revision progress (0-3 scale)
+  const revisionProgress = totalChapters > 0
+    ? totalRevisions / totalChapters
     : 0;
 
   return {
     subjectProgress,
     overallProgress,
     totalRevisions,
+    revisionProgress: Math.round(revisionProgress * 100) / 100, // Round to 2 decimal places
+    chaptersAt0Revisions,
+    chaptersAt1Revision,
+    chaptersAt2Revisions,
+    chaptersAt3Revisions,
+    totalChapters,
   };
 }
 
