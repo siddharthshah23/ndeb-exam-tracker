@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
-import FloatingBackground from '@/components/FloatingBackground';
 import Confetti from '@/components/Confetti';
 import { getSubjects, getChaptersBySubject, updateChapter, updateDailyStreak } from '@/lib/firestoreHelpers';
 import { Subject, Chapter } from '@/lib/types';
@@ -107,15 +106,11 @@ export default function SubjectDetailPage() {
   const overallProgress = totalPages > 0 ? Math.round((totalCompleted / totalPages) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
-      {/* Floating Background - Only for Students */}
-      {user?.role === 'student' && (
-        <FloatingBackground density="low" progressPercentage={overallProgress} />
-      )}
       {/* Confetti Effect for Students */}
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8">
         <Link
           href="/subjects"
           className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 mb-6"

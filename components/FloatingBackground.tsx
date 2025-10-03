@@ -36,7 +36,7 @@ export default function FloatingBackground({ density = 'medium', progressPercent
   }, [density, progressPercentage]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20 z-0">
       {elements.map((element) => (
         <div
           key={element.id}

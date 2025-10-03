@@ -11,6 +11,13 @@
   * {
     @apply transition-colors duration-200;
   }
+  
+  /* Mobile viewport height fix */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      min-height: -webkit-fill-available;
+    }
+  }
 }
 
 @layer components {
