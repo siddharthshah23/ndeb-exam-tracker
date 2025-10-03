@@ -178,7 +178,7 @@ export async function completeTask(taskId: string): Promise<void> {
   // Mark task as completed with timestamp
   await updateDoc(doc(db, 'tasks', taskId), { 
     completed: true,
-    completedAt: new Date()
+    completedAt: Timestamp.now()
   });
   
   // If task has chapterId (By Chapter), update that specific chapter
