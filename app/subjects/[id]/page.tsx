@@ -105,6 +105,19 @@ export default function SubjectDetailPage() {
   const totalPages = chapters.reduce((sum, ch) => sum + ch.totalPages, 0);
   const overallProgress = totalPages > 0 ? Math.round((totalCompleted / totalPages) * 100) : 0;
 
+  // Sort chapters by page number (startPage) instead of alphabetically
+  const sortedChapters = [...chapters].sort((a, b) => {
+    // If both have startPage, sort by startPage
+    if (a.startPage !== undefined && b.startPage !== undefined) {
+      return a.startPage - b.startPage;
+    }
+    // If only one has startPage, prioritize it
+    if (a.startPage !== undefined) return -1;
+    if (b.startPage !== undefined) return 1;
+    // Otherwise, keep original order (alphabetical)
+    return 0;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
@@ -138,7 +151,7 @@ export default function SubjectDetailPage() {
         </div>
 
         <div className="space-y-4">
-          {chapters.map((chapter) => {
+          {sortedChapters.map((chapter) => {
             const progressPercentage =
               chapter.totalPages > 0
                 ? Math.round((chapter.completedPages / chapter.totalPages) * 100)
@@ -157,9 +170,14 @@ export default function SubjectDetailPage() {
                       )}
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{chapter.name}</h3>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 ml-7">
-                      {chapter.completedPages}/{chapter.totalPages} pages
-                    </p>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 ml-7 flex flex-wrap gap-2">
+                      <span>{chapter.completedPages}/{chapter.totalPages} pages</span>
+                      {chapter.startPage !== undefined && chapter.endPage !== undefined && (
+                        <span className="text-primary-600 dark:text-primary-400">
+                          • Pages {chapter.startPage}-{chapter.endPage}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
