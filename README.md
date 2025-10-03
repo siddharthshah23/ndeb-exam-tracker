@@ -12,7 +12,7 @@ A production-ready web application for dental students preparing for the AFK exa
 - **Task Management**: Create tasks by chapter or page count
 - **Exam Countdown**: Prominent countdown timer to your exam date
 - **Motivational System**: Random quotes and partner notes
-- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Responsive Design**: Works on desktop, tablet, and mobile.
 
 ## 🚀 Quick Start
 
