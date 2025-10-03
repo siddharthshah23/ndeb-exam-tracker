@@ -81,6 +81,7 @@ export async function updateChapter(chapterId: string, data: Partial<Chapter>): 
   await updateDoc(doc(db, 'chapters', chapterId), data);
 }
 
+
 export async function deleteChapter(chapterId: string): Promise<void> {
   await deleteDoc(doc(db, 'chapters', chapterId));
 }
