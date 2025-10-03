@@ -29,18 +29,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 dark:bg-primary-500 rounded-full mb-4">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AFK Study Buddy</h1>
-          <p className="text-gray-600">Track your dental exam preparation</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">AFK Study Buddy</h1>
+          <p className="text-gray-600 dark:text-gray-400">Track your dental exam preparation</p>
         </div>
 
         <div className="card">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Sign In</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">Sign In</h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -69,7 +69,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
@@ -83,8 +83,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 text-center">
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
               Users must be created in Firebase Console
             </p>
           </div>

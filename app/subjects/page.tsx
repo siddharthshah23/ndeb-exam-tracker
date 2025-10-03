@@ -44,22 +44,22 @@ export default function SubjectsPage() {
 
   if (loading || loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-            <BookMarked className="w-8 h-8 mr-3 text-primary-600" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+            <BookMarked className="w-8 h-8 mr-3 text-primary-600 dark:text-primary-400" />
             Subjects
           </h1>
-          <p className="text-gray-600">Track your progress across all subjects</p>
+          <p className="text-gray-600 dark:text-gray-400">Track your progress across all subjects</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -67,41 +67,41 @@ export default function SubjectsPage() {
             const subjectProgress = progress?.subjectProgress[subject.id];
             return (
               <Link key={subject.id} href={`/subjects/${subject.id}`}>
-                <div className="card hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="card hover:shadow-lg transition-all cursor-pointer">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
                         {subject.name}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {subject.totalChapters} chapters
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   </div>
 
                   {subjectProgress && (
                     <>
                       <div className="mb-3">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm text-gray-600">Progress</span>
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Progress</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {subjectProgress.percentage}%
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                           <div
-                            className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-500 h-2 rounded-full transition-all duration-500"
                             style={{ width: `${subjectProgress.percentage}%` }}
                           ></div>
                         </div>
                       </div>
 
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">
+                        <span className="text-gray-600 dark:text-gray-400">
                           Chapters: {subjectProgress.chaptersCompleted}/{subjectProgress.totalChapters}
                         </span>
-                        <span className="text-gray-600">
+                        <span className="text-gray-600 dark:text-gray-400">
                           Pages: {subjectProgress.pagesCompleted}/{subjectProgress.totalPages}
                         </span>
                       </div>

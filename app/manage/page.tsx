@@ -183,29 +183,29 @@ export default function ManagePage() {
 
   if (loading || loadingData || user?.role !== 'partner') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-            <Settings className="w-8 h-8 mr-3 text-primary-600" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+            <Settings className="w-8 h-8 mr-3 text-primary-600 dark:text-primary-400" />
             Manage Subjects & Chapters
           </h1>
-          <p className="text-gray-600">Add, edit, or delete subjects and chapters</p>
+          <p className="text-gray-600 dark:text-gray-400">Add, edit, or delete subjects and chapters</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Subjects Panel */}
           <div className="card">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Subjects</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Subjects</h2>
               <button
                 onClick={() => {
                   setEditingSubject(null);
@@ -225,15 +225,15 @@ export default function ManagePage() {
                   key={subject.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                     selectedSubject === subject.id
-                      ? 'border-primary-600 bg-primary-50'
-                      : 'border-gray-200 hover:border-primary-300'
+                      ? 'border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600'
                   }`}
                   onClick={() => setSelectedSubject(subject.id)}
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="font-semibold text-gray-900">{subject.name}</h3>
-                      <p className="text-sm text-gray-600">{subject.totalChapters} chapters</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{subject.name}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{subject.totalChapters} chapters</p>
                     </div>
                     <div className="flex space-x-2">
                       <button
@@ -243,7 +243,7 @@ export default function ManagePage() {
                           setSubjectName(subject.name);
                           setShowSubjectModal(true);
                         }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                        className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -252,7 +252,7 @@ export default function ManagePage() {
                           e.stopPropagation();
                           handleDeleteSubject(subject.id);
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -266,7 +266,7 @@ export default function ManagePage() {
           {/* Chapters Panel */}
           <div className="card">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {selectedSubject ? subjects.find(s => s.id === selectedSubject)?.name : 'Select a Subject'}
               </h2>
               {selectedSubject && (
@@ -288,18 +288,18 @@ export default function ManagePage() {
             </div>
 
             {!selectedSubject ? (
-              <div className="text-center py-12 text-gray-500">
-                <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
                 <p>Select a subject to manage its chapters</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {chapters.map((chapter) => (
-                  <div key={chapter.id} className="p-4 border border-gray-200 rounded-lg">
+                  <div key={chapter.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{chapter.name}</h3>
-                        <div className="flex space-x-4 text-sm text-gray-600 mt-1">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100">{chapter.name}</h3>
+                        <div className="flex space-x-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
                           {chapter.startPage && chapter.endPage ? (
                             <span>📖 Pages {chapter.startPage}-{chapter.endPage} ({chapter.totalPages} pages)</span>
                           ) : (
@@ -319,13 +319,13 @@ export default function ManagePage() {
                             setChapterEndPage(chapter.endPage?.toString() || '');
                             setShowChapterModal(true);
                           }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteChapter(chapter.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -341,9 +341,9 @@ export default function ManagePage() {
 
       {/* Subject Modal */}
       {showSubjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               {editingSubject ? 'Edit Subject' : 'Add Subject'}
             </h2>
             <div className="mb-4">
@@ -382,9 +382,9 @@ export default function ManagePage() {
 
       {/* Chapter Modal */}
       {showChapterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               {editingChapter ? 'Edit Chapter' : 'Add Chapter'}
             </h2>
             <div className="space-y-4 mb-4">
@@ -435,7 +435,7 @@ export default function ManagePage() {
                 </div>
               </div>
               {chapterStartPage && chapterEndPage && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Page range: {chapterStartPage}-{chapterEndPage} = {parseInt(chapterEndPage) - parseInt(chapterStartPage) + 1} pages
                 </p>
               )}

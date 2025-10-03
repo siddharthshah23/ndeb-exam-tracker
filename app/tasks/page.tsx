@@ -206,8 +206,8 @@ export default function TasksPage() {
 
   if (loading || loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
       </div>
     );
   }
@@ -216,16 +216,16 @@ export default function TasksPage() {
   const completedTasks = tasks.filter((t) => t.completed);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <CheckSquare className="w-8 h-8 mr-3 text-primary-600" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+              <CheckSquare className="w-8 h-8 mr-3 text-primary-600 dark:text-primary-400" />
               {isPartner ? 'Assign Tasks' : 'My Tasks'}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               {isPartner 
                 ? 'Create and assign study tasks to students' 
                 : 'Complete your assigned tasks to track progress'}
@@ -242,13 +242,13 @@ export default function TasksPage() {
 
         {/* Pending Tasks */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Pending Tasks ({pendingTasks.length})
           </h2>
           {pendingTasks.length === 0 ? (
             <div className="card text-center py-12">
-              <CheckSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-600">No pending tasks</p>
+              <CheckSquare className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-600 dark:text-gray-400">No pending tasks</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -262,22 +262,22 @@ export default function TasksPage() {
                 return (
                   <div
                     key={task.id}
-                    className="card hover:shadow-md transition-shadow"
+                    className="card hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3 flex-1">
                         <button
                           onClick={() => handleToggleComplete(task)}
-                          className="mt-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md p-1 transition-colors cursor-pointer"
+                          className="mt-1 text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-md p-1 transition-colors cursor-pointer"
                           title="Click to mark as complete"
                         >
                           <div className="w-6 h-6 border-2 border-current rounded-md"></div>
                         </button>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-1">
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
                             {task.title}
                           </h3>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
                             <span>📚 {subject?.name}</span>
                             {chapter && <span>📖 {chapter.name}</span>}
                             {task.startPage && task.endPage ? (
@@ -288,16 +288,16 @@ export default function TasksPage() {
                             {task.deadline && (
                               <span className={`font-medium ${
                                 new Date(task.deadline) < new Date() 
-                                  ? 'text-red-600' 
+                                  ? 'text-red-600 dark:text-red-400' 
                                   : new Date(task.deadline).getTime() - new Date().getTime() < 86400000 * 3
-                                  ? 'text-orange-600'
-                                  : 'text-gray-600'
+                                  ? 'text-orange-600 dark:text-orange-400'
+                                  : 'text-gray-600 dark:text-gray-400'
                               }`}>
                                 📅 {formatDeadlineEST(task.deadline)}
                               </span>
                             )}
                             {isPartner && assignedStudent && (
-                              <span className="text-primary-600">
+                              <span className="text-primary-600 dark:text-primary-400">
                                 👤 {assignedStudent.name}
                               </span>
                             )}
@@ -306,7 +306,7 @@ export default function TasksPage() {
                       </div>
                       <button
                         onClick={() => handleDeleteTask(task.id)}
-                        className="ml-4 p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        className="ml-4 p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -320,13 +320,13 @@ export default function TasksPage() {
 
         {/* Completed Tasks */}
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Completed Tasks ({completedTasks.length})
           </h2>
           {completedTasks.length === 0 ? (
             <div className="card text-center py-12">
-              <Check className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-600">No completed tasks yet</p>
+              <Check className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-600 dark:text-gray-400">No completed tasks yet</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -340,22 +340,22 @@ export default function TasksPage() {
                 return (
                   <div
                     key={task.id}
-                    className="card bg-gray-50 opacity-75"
+                    className="card bg-gray-50 dark:bg-gray-800/50 opacity-75"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3 flex-1">
                         <button
                           onClick={() => handleToggleComplete(task)}
-                          className="mt-1 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md p-1 transition-colors cursor-pointer"
+                          className="mt-1 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-md p-1 transition-colors cursor-pointer"
                           title="Click to mark as incomplete"
                         >
                           <Check className="w-6 h-6" />
                         </button>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-600 mb-1 line-through">
+                          <h3 className="font-semibold text-gray-600 dark:text-gray-400 mb-1 line-through">
                             {task.title}
                           </h3>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-500">
                             <span>📚 {subject?.name}</span>
                             {chapter && <span>📖 {chapter.name}</span>}
                             {task.startPage && task.endPage ? (
@@ -367,7 +367,7 @@ export default function TasksPage() {
                               <span className="line-through">📅 {formatDeadlineEST(task.deadline)}</span>
                             )}
                             {isPartner && assignedStudent && (
-                              <span className="text-primary-600">
+                              <span className="text-primary-600 dark:text-primary-400">
                                 👤 {assignedStudent.name}
                               </span>
                             )}
@@ -377,14 +377,14 @@ export default function TasksPage() {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleToggleComplete(task)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
                           title="Mark as incomplete"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -400,9 +400,9 @@ export default function TasksPage() {
 
       {/* Create/Assign Task Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               {isPartner ? 'Assign Task' : 'Create Task'}
             </h2>
 
@@ -436,8 +436,8 @@ export default function TasksPage() {
                     onClick={() => setTaskType('chapter')}
                     className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                       taskType === 'chapter'
-                        ? 'border-primary-600 bg-primary-50 text-primary-700'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        ? 'border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
                     By Chapter
@@ -447,8 +447,8 @@ export default function TasksPage() {
                     onClick={() => setTaskType('pages')}
                     className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                       taskType === 'pages'
-                        ? 'border-primary-600 bg-primary-50 text-primary-700'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        ? 'border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
                     By Pages
@@ -520,7 +520,7 @@ export default function TasksPage() {
                     />
                   </div>
                   {taskStartPage && taskEndPage && parseInt(taskEndPage) >= parseInt(taskStartPage) && (
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {parseInt(taskEndPage) - parseInt(taskStartPage) + 1} pages (Pages {taskStartPage}-{taskEndPage})
                     </p>
                   )}
