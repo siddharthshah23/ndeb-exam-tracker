@@ -1,0 +1,21 @@
+# Firebase Functions (deployed separately to Firebase)
+functions/
+
+# Scripts (not needed for production)
+scripts/
+
+# Firebase config files
+firebase.json
+firestore.rules
+firestore.indexes.json
+.firebaserc
+
+# Service account key
+serviceAccountKey.json
+serviceAccountKey.example.json
+
+# Firebase debug logs
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
